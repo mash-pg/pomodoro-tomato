@@ -46,6 +46,7 @@ export default function PomodoroClient() {
   const [minutes, setMinutes] = useState(workDuration);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [pomodoroCount, setPomodoroCount] = useState(0); // Completed pomodoro sessions (current session)
 
   // --- User and Session Data ---
@@ -244,7 +245,7 @@ export default function PomodoroClient() {
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isActive) {
+    if (isActive && !isPaused) {
       interval = setInterval(() => {
         if (seconds > 0) {
           setSeconds((s) => s - 1);
@@ -318,15 +319,21 @@ export default function PomodoroClient() {
         clearInterval(interval);
       }
     };
-  }, [isActive, seconds, minutes, currentMode, pomodoroCount, longBreakInterval, autoStartWork, autoStartBreak, user, workDuration, muteNotifications]);
+  }, [isActive, isPaused, seconds, minutes, currentMode, pomodoroCount, longBreakInterval, autoStartWork, autoStartBreak, user, workDuration, muteNotifications]);
 
   // --- Timer Controls ---
   const toggleTimer = () => {
-    setIsActive(!isActive);
+    setIsActive(true);
+    setIsPaused(false);
+  };
+
+  const pauseTimer = () => {
+    setIsPaused(true);
   };
 
   const resetTimer = () => {
     setIsActive(false);
+    setIsPaused(false);
     setMinutes(getDuration(currentMode));
     setSeconds(0);
   };
@@ -370,14 +377,39 @@ export default function PomodoroClient() {
 
         {/* Controls */}
         <div className="flex gap-4 justify-center">
-          <button
-            onClick={toggleTimer}
-            className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
-              ${isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}
-              text-white shadow-lg`}
-          >
-            {isActive ? "一時停止" : "開始"}
-          </button>
+          {!isActive && (
+            <button
+              onClick={toggleTimer}
+              className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
+                bg-blue-500 hover:bg-blue-600
+                text-white shadow-lg`}
+            >
+              開始
+            </button>
+          )}
+
+          {isActive && !isPaused && (
+            <button
+              onClick={pauseTimer}
+              className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
+                bg-red-500 hover:bg-red-600
+                text-white shadow-lg`}
+            >
+              一時停止
+            </button>
+          )}
+
+          {isActive && isPaused && (
+            <button
+              onClick={toggleTimer}
+              className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
+                bg-green-500 hover:bg-green-600
+                text-white shadow-lg`}
+            >
+              再開
+            </button>
+          )}
+
           <button
             onClick={resetTimer}
             className="py-3 px-8 rounded-lg text-2xl font-bold uppercase bg-gray-600 hover:bg-gray-700 text-white shadow-lg"
