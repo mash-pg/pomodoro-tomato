@@ -4,10 +4,10 @@ import SettingsModal from './SettingsModal';
 import { useSettings } from '@/context/SettingsContext';
 
 export default function GlobalSettingsModalWrapper() {
-  const { showSettingsModal, setShowSettingsModal, initialSettings, onSaveSettings } = useSettings();
+  const { showSettingsModal, setShowSettingsModal, settingsRef } = useSettings();
 
-  // Only render SettingsModal if it should be open AND initialSettings/onSaveSettings are available
-  if (!showSettingsModal || !initialSettings || !onSaveSettings) {
+  // Only render SettingsModal if it should be open AND settingsRef.current is available
+  if (!showSettingsModal || !settingsRef.current) {
     return null;
   }
 
@@ -15,8 +15,8 @@ export default function GlobalSettingsModalWrapper() {
     <SettingsModal
       isOpen={showSettingsModal}
       onClose={() => setShowSettingsModal(false)}
-      initialSettings={initialSettings}
-      onSave={onSaveSettings}
+      initialSettings={settingsRef.current.initialSettings}
+      onSave={settingsRef.current.onSave}
     />
   );
 }

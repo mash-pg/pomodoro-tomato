@@ -16,6 +16,8 @@ interface PomodoroSession {
   user_id: string;
 }
 
+// UserSettings interface is no longer directly used here, but kept for reference if needed elsewhere.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface UserSettings {
   user_id: string;
   work_minutes: number;
@@ -54,7 +56,8 @@ export default function PomodoroClient() {
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
 
   // --- UI State (from Context) ---
-  const { showSettingsModal, setShowSettingsModal, setInitialSettings, setOnSaveSettings } = useSettings();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { showSettingsModal, setShowSettingsModal, settingsRef } = useSettings(); // Get settingsRef from context
 
   // --- Refs for audio ---
   const pomodoroEndAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -82,6 +85,55 @@ export default function PomodoroClient() {
       setSeconds(0);
     }
   }, [currentMode, isActive, getDuration]);
+
+  // --- Settings Modal Controls ---
+  const handleSaveSettings = useCallback(async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
+    setWorkDuration(settings.workDuration);
+    setShortBreakDuration(settings.shortBreakDuration);
+    setLongBreakDuration(settings.longBreakDuration);
+    setLongBreakInterval(settings.longBreakInterval);
+    setAutoStartWork(settings.autoStartWork);
+    setAutoStartBreak(settings.autoStartBreak);
+    setMuteNotifications(settings.muteNotifications);
+    setDarkMode(settings.darkMode);
+
+    // Save settings to Supabase
+    if (user) {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          work_minutes: settings.workDuration,
+          short_break_minutes: settings.shortBreakDuration,
+          long_break_minutes: settings.longBreakDuration,
+          long_break_interval: settings.longBreakInterval,
+          auto_start_work: settings.autoStartWork,
+          auto_start_break: settings.autoStartBreak,
+          mute_notifications: settings.muteNotifications,
+          dark_mode: settings.darkMode,
+        });
+      if (error) {
+        console.error('Error saving user settings:', JSON.stringify(error, null, 2));
+      }
+    }
+  }, [user]); // Added user to dependency array
+
+  // --- Update settingsRef for GlobalSettingsModalWrapper ---
+  useEffect(() => {
+    settingsRef.current = {
+      initialSettings: {
+        workDuration,
+        shortBreakDuration,
+        longBreakDuration,
+        longBreakInterval,
+        autoStartWork,
+        autoStartBreak,
+        muteNotifications,
+        darkMode,
+      },
+      onSave: handleSaveSettings,
+    };
+  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, handleSaveSettings, settingsRef]);
 
   // --- Fetch user, sessions, and settings on mount and auth state change ---
   useEffect(() => {
@@ -283,53 +335,6 @@ export default function PomodoroClient() {
     setIsActive(false);
     setCurrentMode(mode);
   };
-
-  // --- Settings Modal Controls ---
-  const handleSaveSettings = useCallback(async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
-    setWorkDuration(settings.workDuration);
-    setShortBreakDuration(settings.shortBreakDuration);
-    setLongBreakDuration(settings.longBreakDuration);
-    setLongBreakInterval(settings.longBreakInterval);
-    setAutoStartWork(settings.autoStartWork);
-    setAutoStartBreak(settings.autoStartBreak);
-    setMuteNotifications(settings.muteNotifications);
-    setDarkMode(settings.darkMode);
-
-    // Save settings to Supabase
-    if (user) {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          work_minutes: settings.workDuration,
-          short_break_minutes: settings.shortBreakDuration,
-          long_break_minutes: settings.longBreakDuration,
-          long_break_interval: settings.longBreakInterval,
-          auto_start_work: settings.autoStartWork,
-          auto_start_break: settings.autoStartBreak,
-          mute_notifications: settings.muteNotifications,
-          dark_mode: settings.darkMode,
-        });
-      if (error) {
-        console.error('Error saving user settings:', JSON.stringify(error, null, 2));
-      }
-    }
-  }, [user]); // Added user to dependency array
-
-  // --- Set initialSettings and onSaveSettings in context --- 
-  useEffect(() => {
-    setInitialSettings({
-      workDuration,
-      shortBreakDuration,
-      longBreakDuration,
-      longBreakInterval,
-      autoStartWork,
-      autoStartBreak,
-      muteNotifications,
-      darkMode,
-    });
-    setOnSaveSettings(() => handleSaveSettings); // Pass a function that returns handleSaveSettings
-  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, setInitialSettings, setOnSaveSettings, handleSaveSettings]);
 
   // --- Render --- 
   return (

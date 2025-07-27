@@ -31,7 +31,7 @@ export default function Navbar() {
           ></path>
         </svg>
       </button>
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setShowSettingsModal={setShowSettingsModal} />
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} /> {/* Removed setShowSettingsModal prop */}
     </nav>
   );
 }
