@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-gray-900 text-white">
       <AuthForm isSignUp={false} onSubmit={handleLogin} loading={loading} error={error} />
       <p className="mt-4 text-gray-400">
-        Don't have an account? <a href="/signup" className="text-blue-500 hover:underline">Sign Up</a>
+        アカウントをお持ちでないですか？ <a href="/signup" className="text-blue-500 hover:underline">新規登録</a>
       </p>
     </div>
   );

@@ -81,7 +81,7 @@ export default function PomodoroClient() {
       setMinutes(getDuration(currentMode));
       setSeconds(0);
     }
-  }, [currentMode, workDuration, shortBreakDuration, longBreakDuration, isActive]);
+  }, [currentMode, workDuration, shortBreakDuration, longBreakDuration, isActive, getDuration]); // Added getDuration
 
   // --- Fetch user, sessions, and settings on mount and auth state change ---
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function PomodoroClient() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [getDuration]); // Added getDuration
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
