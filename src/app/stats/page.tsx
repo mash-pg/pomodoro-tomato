@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { useSettings } from '@/context/SettingsContext'; // Import useSettings
 
 interface PomodoroSession {
   id: number;
@@ -25,6 +26,8 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { setShowSettingsModal } = useSettings(); // Get setShowSettingsModal from context
+
   // For manual session addition
   const [manualPomodoros, setManualPomodoros] = useState(1);
   const [manualDuration, setManualDuration] = useState(25);
@@ -38,7 +41,7 @@ export default function StatsPage() {
     setManualTime(today.toTimeString().split(' ')[0].substring(0, 5)); // HH:MM
   }, []);
 
-  const fetchUserAndSessions = async () => {
+  const fetchUserAndSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +65,7 @@ export default function StatsPage() {
       setError('統計情報を表示するにはログインしてください。');
     }
     setLoading(false);
-  };
+  }, []); // Empty dependency array for useCallback
 
   useEffect(() => {
     fetchUserAndSessions();
@@ -75,7 +78,7 @@ export default function StatsPage() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserAndSessions]);
 
   useEffect(() => {
     const now = new Date();

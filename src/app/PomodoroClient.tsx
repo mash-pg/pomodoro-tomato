@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import SettingsModal from "@/components/SettingsModal";
 import { useSettings } from "@/context/SettingsContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -54,7 +54,7 @@ export default function PomodoroClient() {
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
 
   // --- UI State (from Context) ---
-  const { showSettingsModal, setShowSettingsModal } = useSettings();
+  const { showSettingsModal, setShowSettingsModal, setInitialSettings, setOnSaveSettings } = useSettings();
 
   // --- Refs for audio ---
   const pomodoroEndAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -62,7 +62,7 @@ export default function PomodoroClient() {
   const longBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // --- Helper to get current duration based on mode ---
-  const getDuration = (mode: TimerMode) => {
+  const getDuration = useCallback((mode: TimerMode) => {
     switch (mode) {
       case 'pomodoro':
         return workDuration;
@@ -73,7 +73,7 @@ export default function PomodoroClient() {
       default:
         return workDuration; // Fallback
     }
-  };
+  }, [workDuration, shortBreakDuration, longBreakDuration]);
 
   // --- Effect to update timer display when mode or settings change ---
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function PomodoroClient() {
       setMinutes(getDuration(currentMode));
       setSeconds(0);
     }
-  }, [currentMode, workDuration, shortBreakDuration, longBreakDuration, isActive, getDuration]); // Added getDuration
+  }, [currentMode, isActive, getDuration]);
 
   // --- Fetch user, sessions, and settings on mount and auth state change ---
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function PomodoroClient() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getDuration]); // Added getDuration
+  }, [getDuration]);
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
@@ -285,7 +285,7 @@ export default function PomodoroClient() {
   };
 
   // --- Settings Modal Controls ---
-  const handleSaveSettings = async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
+  const handleSaveSettings = useCallback(async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
     setWorkDuration(settings.workDuration);
     setShortBreakDuration(settings.shortBreakDuration);
     setLongBreakDuration(settings.longBreakDuration);
@@ -314,7 +314,22 @@ export default function PomodoroClient() {
         console.error('Error saving user settings:', JSON.stringify(error, null, 2));
       }
     }
-  };
+  }, [user]); // Added user to dependency array
+
+  // --- Set initialSettings and onSaveSettings in context --- 
+  useEffect(() => {
+    setInitialSettings({
+      workDuration,
+      shortBreakDuration,
+      longBreakDuration,
+      longBreakInterval,
+      autoStartWork,
+      autoStartBreak,
+      muteNotifications,
+      darkMode,
+    });
+    setOnSaveSettings(() => handleSaveSettings); // Pass a function that returns handleSaveSettings
+  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, setInitialSettings, setOnSaveSettings, handleSaveSettings]);
 
   // --- Render --- 
   return (
@@ -382,23 +397,6 @@ export default function PomodoroClient() {
         <audio ref={pomodoroEndAudioRef} src="/sounds/pomodoro_end.mp3" preload="auto" />
         <audio ref={shortBreakEndAudioRef} src="/sounds/short_break_end.mp3" preload="auto" />
         <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
-
-        {/* Settings Modal */}
-        <SettingsModal
-          isOpen={showSettingsModal}
-          onClose={() => setShowSettingsModal(false)}
-          initialSettings={{
-            workDuration,
-            shortBreakDuration,
-            longBreakDuration,
-            longBreakInterval,
-            autoStartWork,
-            autoStartBreak,
-            muteNotifications,
-            darkMode,
-          }}
-          onSave={handleSaveSettings}
-        />
 
       </div>
     </main>

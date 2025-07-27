@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { useSettings } from '@/context/SettingsContext'; // Import useSettings
 
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
-  setShowSettingsModal: (show: boolean) => void;
 }
 
-export default function Sidebar({ isOpen, toggleSidebar, setShowSettingsModal }: SidebarProps) {
+export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { setShowSettingsModal } = useSettings(); // Get setShowSettingsModal from context
 
   useEffect(() => {
     const getSession = async () => {
