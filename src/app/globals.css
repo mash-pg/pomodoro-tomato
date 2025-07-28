@@ -24,3 +24,111 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom styles for react-calendar */
+.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  background-color: #1a1a1a; /* より暗い背景色 */
+  border: none; /* ボーダーをなくす */
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.125em;
+  color: #e0e0e0; /* 全体的な文字色 */
+  border-radius: 8px; /* 角を丸くする */
+  overflow: hidden; /* はみ出しを隠す */
+}
+
+.react-calendar__navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px; /* パディングを調整 */
+  background-color: #222222; /* ナビゲーションバーの背景色 */
+  border-bottom: 1px solid #333333; /* 区切り線 */
+}
+
+.react-calendar__navigation button {
+  color: #e0e0e0; /* ボタンの文字色 */
+  min-width: 40px; /* 最小幅を調整 */
+  background: none;
+  font-size: 1.1em; /* フォントサイズを調整 */
+  margin: 0;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #333333; /* ホバー時の背景色 */
+}
+
+.react-calendar__navigation button[disabled] {
+  color: #666666; /* 無効時の文字色 */
+  cursor: not-allowed;
+}
+
+.react-calendar__month-view__weekdays {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 0.8em;
+  color: #aaaaaa; /* 曜日の文字色 */
+  padding: 8px 0;
+  border-bottom: 1px solid #333333;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  padding: 4px 0;
+}
+
+.react-calendar__tile {
+  color: black; /* 日付の数字の色を黒に */
+  padding: 10px 6px; /* パディングを調整 */
+  height: 60px; /* セルの高さを調整 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background-color: #2a2a2a; /* ホバー時の背景色 */
+}
+
+.react-calendar__tile--now {
+  background: #444444 !important; /* 今日の日付の背景色 */
+  color: white;
+}
+
+.react-calendar__tile--now:enabled:hover,
+.react-calendar__tile--now:enabled:focus {
+  background: #555555; /* 今日の日付ホバー時の背景色 */
+}
+
+.react-calendar__tile--active {
+  background: #007bff; /* 選択中の日付の背景色 */
+  color: white;
+  border-radius: 4px;
+}
+
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: #0056b3; /* 選択中の日付ホバー時の背景色 */
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: #ff6666; /* 週末の文字色 */
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #666666; /* 前月・次月の日付の文字色 */
+}
+
+/* ポモドーロ数表示のスタイル */
+.react-calendar__tile .text-blue-600 {
+  color: #88ccff; /* ポモドーロ数の色を調整 */
+}
