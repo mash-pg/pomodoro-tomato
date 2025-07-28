@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
+
 import { User } from "@supabase/supabase-js";
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay, getHours, setHours, setMinutes } from "date-fns";
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay } from "date-fns";
 import { ja } from "date-fns/locale"; // 日本語ロケールをインポート
 
 interface PomodoroSession {
@@ -40,43 +40,7 @@ export default function WeeklyCalendar({ user, sessions }: WeeklyCalendarProps) 
     ).length;
   };
 
-  const getSessionsForDayAndTime = (day: Date, hour: number) => {
-    const cellStart = setMinutes(setHours(day, hour), 0);
-    const cellEnd = setMinutes(setHours(day, hour), 59);
-
-    return sessions.filter(session => {
-      const sessionStart = new Date(session.created_at);
-      const sessionEnd = new Date(sessionStart.getTime() + session.duration_minutes * 60 * 1000);
-
-      // セッションが現在の時間セルに重なっているかチェック
-      return (
-        (sessionStart < cellEnd && sessionEnd > cellStart)
-      );
-    }).map(session => {
-      const sessionStart = new Date(session.created_at);
-      const sessionEnd = new Date(sessionStart.getTime() + session.duration_minutes * 60 * 1000);
-
-      // セル内での開始位置 (分単位で計算)
-      const startMinutesInHour = sessionStart.getMinutes();
-      const top = startMinutesInHour; // 1分あたり1pxとして計算
-
-      // セル内での表示高さ (分単位で計算)
-      let durationInCell = session.duration_minutes;
-      // セッションが次の時間帯にまたがる場合、現在の時間帯の残り時間のみを考慮
-      if (getHours(sessionEnd) > hour) {
-        durationInCell = 60 - startMinutesInHour;
-      }
-      const height = Math.min(durationInCell, 58); // 1分あたり1pxとして計算し、最大58pxに制限（下部に2pxの余白）
-
-      return {
-        ...session,
-        top: `${top}px`,
-        height: `${height}px`,
-      };
-    });
-  };
-
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  
 
   if (!user) {
     return null; // User should be handled by parent component

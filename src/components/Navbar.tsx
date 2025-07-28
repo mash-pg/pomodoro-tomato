@@ -6,7 +6,7 @@ import { useSettings } from '@/context/SettingsContext';
 
 export default function Navbar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { setShowSettingsModal } = useSettings();
+  const {} = useSettings();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);

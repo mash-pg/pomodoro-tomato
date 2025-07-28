@@ -26,7 +26,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { setShowSettingsModal } = useSettings(); // Get setShowSettingsModal from context
+  const {} = useSettings();
 
   // For manual session addition
   const [manualPomodoros, setManualPomodoros] = useState(1);

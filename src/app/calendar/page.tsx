@@ -42,9 +42,9 @@ export default function CalendarPage() {
           }
           setSessions(sessionsData as PomodoroSession[]);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching user or sessions:", err);
-        setError(err.message || "データの取得中にエラーが発生しました。");
+        setError((err as Error).message || "データの取得中にエラーが発生しました。");
       } finally {
         setLoading(false);
       }
@@ -105,7 +105,7 @@ export default function CalendarPage() {
         {/* Monthly Calendar */}
         <div className="w-full md:w-2/5 bg-gray-800 p-6 rounded-lg shadow-lg mb-8 md:mb-0">
           <Calendar
-            onChange={setDate}
+            onChange={(value) => setDate(value instanceof Date ? value : new Date())}
             value={date}
             tileContent={tileContent}
             className="react-calendar-custom"
