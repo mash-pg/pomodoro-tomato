@@ -232,9 +232,19 @@ export default function PomodoroClient() {
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay())); // Sunday
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    const dayOfWeekUtc = todayUtc.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const diffUtc = todayUtc.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1); // Adjust for Monday start
+    const startOfWeekUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
+
+    const endOfWeekUtc = new Date(startOfWeekUtc);
+    endOfWeekUtc.setUTCDate(startOfWeekUtc.getUTCDate() + 6);
+    endOfWeekUtc.setUTCHours(23, 59, 59, 999);
+
+    const startOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const endOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+    endOfMonthUtc.setUTCHours(23, 59, 59, 999);
 
     let dailyCount = 0;
     let dailyTime = 0;
@@ -245,21 +255,22 @@ export default function PomodoroClient() {
 
     allSessions.forEach(session => {
       const sessionDate = new Date(session.created_at);
+      const sessionDayUtc = new Date(Date.UTC(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate()));
 
       // Daily
-      if (sessionDate.toDateString() === now.toDateString()) {
+      if (sessionDayUtc.getTime() === todayUtc.getTime()) {
         dailyCount++;
         dailyTime += session.duration_minutes;
       }
 
       // Weekly
-      if (sessionDate >= startOfWeek) {
+      if (sessionDayUtc >= startOfWeekUtc && sessionDayUtc <= endOfWeekUtc) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
       }
 
       // Monthly
-      if (sessionDate >= startOfMonth) {
+      if (sessionDayUtc >= startOfMonthUtc && sessionDayUtc <= endOfMonthUtc) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
       }

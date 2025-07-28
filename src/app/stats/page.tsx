@@ -82,20 +82,23 @@ export default function StatsPage() {
 
   useEffect(() => {
     const now = new Date();
-    // Normalize "now" to the start of the current day for consistent comparisons
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // --- Weekly Calculation (Monday as the first day of the week) ---
-    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust for Monday start
-    const startOfWeek = new Date(today.setDate(diff));
+    // Normalize "now" to the start of the current UTC day for consistent comparisons
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    // --- Weekly Calculation (Monday as the first day of the week, UTC) ---
+    const dayOfWeekUtc = todayUtc.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const diffUtc = todayUtc.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1); // Adjust for Monday start
+    const startOfWeekUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
 
-    // --- Monthly Calculation ---
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of the current month
+    const endOfWeekUtc = new Date(startOfWeekUtc);
+    endOfWeekUtc.setUTCDate(startOfWeekUtc.getUTCDate() + 6);
+    endOfWeekUtc.setUTCHours(23, 59, 59, 999);
+
+    // --- Monthly Calculation (UTC) ---
+    const startOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const endOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)); // Last day of the current month
+    endOfMonthUtc.setUTCHours(23, 59, 59, 999);
 
     let dailyCount = 0;
     let dailyTime = 0;
@@ -106,23 +109,23 @@ export default function StatsPage() {
 
     allSessions.forEach(session => {
       const sessionDate = new Date(session.created_at);
-      // Normalize sessionDate to the start of its day for accurate comparison
-      const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+      // Normalize sessionDate to the start of its UTC day for accurate comparison
+      const sessionDayUtc = new Date(Date.UTC(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate()));
 
       // Daily
-      if (sessionDay.getTime() === today.getTime()) {
+      if (sessionDayUtc.getTime() === todayUtc.getTime()) {
         dailyCount++;
         dailyTime += session.duration_minutes;
       }
 
       // Weekly
-      if (sessionDay >= startOfWeek && sessionDay <= endOfWeek) {
+      if (sessionDayUtc >= startOfWeekUtc && sessionDayUtc <= endOfWeekUtc) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
       }
 
       // Monthly
-      if (sessionDay >= startOfMonth && sessionDay <= endOfMonth) {
+      if (sessionDayUtc >= startOfMonthUtc && sessionDayUtc <= endOfMonthUtc) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
       }
@@ -151,19 +154,21 @@ export default function StatsPage() {
     let startDate: Date;
 
     if (period === 'day') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     } else if (period === 'week') {
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      startDate = new Date(today.setDate(today.getDate() - today.getDay()));
+      const dayOfWeekUtc = now.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const diffUtc = now.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1); // Adjust for Monday start
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
     } else { // month
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     }
 
     const { error: deleteError } = await supabase
       .from('pomodoro_sessions')
       .delete()
       .eq('user_id', user.id)
-      .gte('created_at', startDate.toISOString());
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999)).toISOString());
 
     if (deleteError) {
       console.error(`${period}セッションのクリアエラー:`, JSON.stringify(deleteError, null, 2));
@@ -218,14 +223,16 @@ export default function StatsPage() {
     setError(null);
 
     const sessionPromises = [];
-    const sessionDateTime = new Date(`${manualDate}T${manualTime}:00`);
+    const [year, month, day] = manualDate.split('-').map(Number);
+    const [hours, minutes] = manualTime.split(':').map(Number);
+    const sessionDateTimeUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
 
     for (let i = 0; i < manualPomodoros; i++) {
       sessionPromises.push(
         supabase.from('pomodoro_sessions').insert({
           user_id: user.id,
           duration_minutes: manualDuration,
-          created_at: sessionDateTime.toISOString(),
+          created_at: sessionDateTimeUtc.toISOString(),
         })
       );
     }
