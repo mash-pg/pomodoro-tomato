@@ -82,9 +82,20 @@ export default function StatsPage() {
 
   useEffect(() => {
     const now = new Date();
+    // Normalize "now" to the start of the current day for consistent comparisons
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay())); // Sunday
+
+    // --- Weekly Calculation (Monday as the first day of the week) ---
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust for Monday start
+    const startOfWeek = new Date(today.setDate(diff));
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    // --- Monthly Calculation ---
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of the current month
 
     let dailyCount = 0;
     let dailyTime = 0;
@@ -95,21 +106,23 @@ export default function StatsPage() {
 
     allSessions.forEach(session => {
       const sessionDate = new Date(session.created_at);
+      // Normalize sessionDate to the start of its day for accurate comparison
+      const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
 
       // Daily
-      if (sessionDate.toDateString() === now.toDateString()) {
+      if (sessionDay.getTime() === today.getTime()) {
         dailyCount++;
         dailyTime += session.duration_minutes;
       }
 
       // Weekly
-      if (sessionDate >= startOfWeek) {
+      if (sessionDay >= startOfWeek && sessionDay <= endOfWeek) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
       }
 
       // Monthly
-      if (sessionDate >= startOfMonth) {
+      if (sessionDay >= startOfMonth && sessionDay <= endOfMonth) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
       }
