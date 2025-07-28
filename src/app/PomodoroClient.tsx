@@ -98,6 +98,13 @@ export default function PomodoroClient() {
     setMuteNotifications(settings.muteNotifications);
     setDarkMode(settings.darkMode);
 
+    // Save settings to localStorage for persistence across reloads
+    try {
+      localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Error saving settings to localStorage:', error);
+    }
+
     // Save settings to Supabase
     if (user) {
       const { error } = await supabase
@@ -135,6 +142,29 @@ export default function PomodoroClient() {
       onSave: handleSaveSettings,
     };
   }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, handleSaveSettings, settingsRef]);
+
+  // --- Load Initial Settings from LocalStorage ---
+  useEffect(() => {
+    try {
+      const savedSettingsJSON = localStorage.getItem('pomodoroSettings');
+      if (savedSettingsJSON) {
+        const savedSettings = JSON.parse(savedSettingsJSON);
+        if (savedSettings) {
+          setWorkDuration(savedSettings.workDuration);
+          setShortBreakDuration(savedSettings.shortBreakDuration);
+          setLongBreakDuration(savedSettings.longBreakDuration);
+          setLongBreakInterval(savedSettings.longBreakInterval);
+          setAutoStartWork(savedSettings.autoStartWork);
+          setAutoStartBreak(savedSettings.autoStartBreak);
+          setMuteNotifications(savedSettings.muteNotifications);
+          // Ensure darkMode has a fallback to prevent errors
+          setDarkMode(savedSettings.darkMode ?? true);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading settings from localStorage:', error);
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // --- Fetch user, sessions, and settings on mount and auth state change ---
   useEffect(() => {
@@ -241,7 +271,54 @@ export default function PomodoroClient() {
 
   }, [allSessions]);
 
-  // --- Core Timer Logic ---
+  // --- Persist and Restore Timer State from LocalStorage ---
+  useEffect(() => {
+    // On component mount, try to load state from localStorage
+    try {
+      const savedStateJSON = localStorage.getItem('pomodoroState');
+      if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON);
+        if (savedState) {
+          // Restore timer state
+          setCurrentMode(savedState.currentMode ?? 'pomodoro');
+          
+          // Only restore minutes/seconds if the timer was running or paused.
+          // Otherwise, let the main effect set the duration from settings.
+          if (savedState.isActive || savedState.isPaused) {
+            setMinutes(savedState.minutes ?? workDuration);
+            setSeconds(savedState.seconds ?? 0);
+          }
+          
+          setIsActive(savedState.isActive ?? false);
+          setIsPaused(savedState.isPaused ?? false);
+          setPomodoroCount(savedState.pomodoroCount ?? 0);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load state from localStorage", error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
+  useEffect(() => {
+    // Whenever timer state changes, save it to localStorage
+    try {
+      const stateToSave = {
+        currentMode,
+        minutes,
+        seconds,
+        isActive,
+        isPaused,
+        pomodoroCount,
+      };
+      localStorage.setItem('pomodoroState', JSON.stringify(stateToSave));
+    } catch (error) {
+      console.error("Failed to save state to localStorage", error);
+    }
+  }, [currentMode, minutes, seconds, isActive, isPaused, pomodoroCount]);
+
+
+  // --- Core Timer Logic ---''
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
