@@ -426,22 +426,22 @@ export default function PomodoroClient() {
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
 
         {/* Mode Switcher */}
-        <div className="flex justify-center bg-gray-800 rounded-full p-1 mb-8 w-full max-w-xs">
+        <div className={`flex justify-center rounded-full p-1 mb-8 w-full max-w-xs ${darkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
           <button
             onClick={() => handleModeChange('pomodoro')}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'pomodoro' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'pomodoro' ? 'bg-blue-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             ポモドーロ
           </button>
           <button
             onClick={() => handleModeChange('shortBreak')}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'shortBreak' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'shortBreak' ? 'bg-green-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             短い休憩
           </button>
           <button
             onClick={() => handleModeChange('longBreak')}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'longBreak' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'longBreak' ? 'bg-purple-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             長い休憩
           </button>
@@ -499,7 +499,7 @@ export default function PomodoroClient() {
         {user && (
           <div className="mt-12 text-lg text-left w-full max-w-xs">
             <h2 className="text-xl font-bold mb-4">あなたのポモドーロ統計</h2>
-            <div className="bg-gray-800 p-4 rounded-lg shadow-md">
+            <div className={`p-4 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
               <p className="mb-2">今日: <span className="font-bold">{dailyStats.count}</span> ポモドーロ / <span className="font-bold">{dailyStats.time}</span> 分</p>
               <p className="mb-2">今週: <span className="font-bold">{weeklyStats.count}</span> ポモドーロ / <span className="font-bold">{weeklyStats.time}</span> 分</p>
               <p>今月: <span className="font-bold">{monthlyStats.count}</span> ポモドーロ / <span className="font-bold">{monthlyStats.time}</span> 分</p>

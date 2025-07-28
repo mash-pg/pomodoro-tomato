@@ -24,16 +24,16 @@ export default function SettingsModal({
   initialSettings,
   onSave,
 }: SettingsModalProps) {
-  const [workDuration, setWorkDuration] = useState(initialSettings.workDuration);
-  const [shortBreakDuration, setShortBreakDuration] = useState(initialSettings.shortBreakDuration);
-  const [longBreakDuration, setLongBreakDuration] = useState(initialSettings.longBreakDuration);
-  const [longBreakInterval, setLongBreakInterval] = useState(initialSettings.longBreakInterval);
+  const [workDuration, setWorkDuration] = useState<number | ''>(initialSettings.workDuration);
+  const [shortBreakDuration, setShortBreakDuration] = useState<number | ''>(initialSettings.shortBreakDuration);
+  const [longBreakDuration, setLongBreakDuration] = useState<number | ''>(initialSettings.longBreakDuration);
+  const [longBreakInterval, setLongBreakInterval] = useState<number | ''>(initialSettings.longBreakInterval);
   const [autoStartWork, setAutoStartWork] = useState(initialSettings.autoStartWork);
   const [autoStartBreak, setAutoStartBreak] = useState(initialSettings.autoStartBreak);
   const [muteNotifications, setMuteNotifications] = useState(initialSettings.muteNotifications);
   const [darkMode, setDarkMode] = useState(initialSettings.darkMode);
 
-  // Update local state when initialSettings prop changes (e.g., after fetching from Supabase)
+  // Update local state when initialSettings prop changes
   useEffect(() => {
     setWorkDuration(initialSettings.workDuration);
     setShortBreakDuration(initialSettings.shortBreakDuration);
@@ -46,17 +46,30 @@ export default function SettingsModal({
   }, [initialSettings]);
 
   const handleSave = () => {
+    // On save, ensure values are at least 1.
     onSave({
-      workDuration,
-      shortBreakDuration,
-      longBreakDuration,
-      longBreakInterval,
+      workDuration: Number(workDuration) >= 1 ? Number(workDuration) : 1,
+      shortBreakDuration: Number(shortBreakDuration) >= 1 ? Number(shortBreakDuration) : 1,
+      longBreakDuration: Number(longBreakDuration) >= 1 ? Number(longBreakDuration) : 1,
+      longBreakInterval: Number(longBreakInterval) >= 1 ? Number(longBreakInterval) : 1,
       autoStartWork,
       autoStartBreak,
       muteNotifications,
       darkMode,
     });
     onClose();
+  };
+
+  const handleNumberChange = (setter: React.Dispatch<React.SetStateAction<number | ''>>, value: string) => {
+    if (value === '') {
+      setter('');
+      return;
+    }
+    const num = Number(value);
+    // Allow only non-negative integers.
+    if (Number.isInteger(num) && num >= 0) {
+      setter(num);
+    }
   };
 
   if (!isOpen) return null;
@@ -75,8 +88,9 @@ export default function SettingsModal({
               <input
                 id="work-time"
                 type="number"
+                min="1"
                 value={workDuration}
-                onChange={(e) => setWorkDuration(Number(e.target.value))}
+                onChange={(e) => handleNumberChange(setWorkDuration, e.target.value)}
                 className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
@@ -85,8 +99,9 @@ export default function SettingsModal({
               <input
                 id="short-break-time"
                 type="number"
+                min="1"
                 value={shortBreakDuration}
-                onChange={(e) => setShortBreakDuration(Number(e.target.value))}
+                onChange={(e) => handleNumberChange(setShortBreakDuration, e.target.value)}
                 className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
@@ -95,8 +110,9 @@ export default function SettingsModal({
               <input
                 id="long-break-time"
                 type="number"
+                min="1"
                 value={longBreakDuration}
-                onChange={(e) => setLongBreakDuration(Number(e.target.value))}
+                onChange={(e) => handleNumberChange(setLongBreakDuration, e.target.value)}
                 className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
@@ -109,8 +125,9 @@ export default function SettingsModal({
           <input
             id="long-break-interval"
             type="number"
+            min="1"
             value={longBreakInterval}
-            onChange={(e) => setLongBreakInterval(Number(e.target.value))}
+            onChange={(e) => handleNumberChange(setLongBreakInterval, e.target.value)}
             className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           />
         </div>
