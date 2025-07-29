@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar } from 'recharts';
 
 interface PomodoroSession {
   id: number;
@@ -31,6 +32,9 @@ export default function StatsPage() {
   const [goals, setGoals] = useState<Goals>({ daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [dailyActivityData, setDailyActivityData] = useState<{ hour: number; count: number }[]>([]);
+  const [weeklyActivityData, setWeeklyActivityData] = useState<{ day: number; count: number }[]>([]);
 
   const [manualPomodoros, setManualPomodoros] = useState(1);
   const [manualDuration, setManualDuration] = useState(25);
@@ -127,6 +131,26 @@ export default function StatsPage() {
     setDailyStats({ count: dailyCount, time: dailyTime });
     setWeeklyStats({ count: weeklyCount, time: weeklyTime });
     setMonthlyStats({ count: monthlyCount, time: monthlyTime });
+
+    // Detailed Stats for Charts
+    const dailyActivity: { [hour: number]: number } = {};
+    for (let i = 0; i < 24; i++) dailyActivity[i] = 0;
+
+    const weeklyActivity: { [day: number]: number } = {}; // 0: Sunday, 1: Monday, ..., 6: Saturday
+    for (let i = 0; i < 7; i++) weeklyActivity[i] = 0;
+
+    allSessions.forEach(session => {
+      const sessionDate = new Date(session.created_at);
+      const sessionHour = sessionDate.getHours();
+      const sessionDay = sessionDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+
+      dailyActivity[sessionHour]++;
+      weeklyActivity[sessionDay]++;
+    });
+
+    setDailyActivityData(Object.keys(dailyActivity).map(key => ({ hour: Number(key), count: dailyActivity[Number(key)] })));
+    setWeeklyActivityData(Object.keys(weeklyActivity).map(key => ({ day: Number(key), count: weeklyActivity[Number(key)] })));
+
   }, [allSessions]);
 
   const handleSaveGoals = async () => {
@@ -258,7 +282,7 @@ export default function StatsPage() {
         {!user && !loading && <p className="text-gray-400">統計情報を表示するにはログインしてください。</p>}
 
         {user && !loading && !error && (
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Column */}
             <div className="flex flex-col gap-8">
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
@@ -323,7 +347,7 @@ export default function StatsPage() {
               </div>
             </div>
 
-            {/* Right Column */}
+            {/* Middle Column */}
             <div className="flex flex-col gap-8">
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-bold mb-4">手動でセッションを追加</h2>
@@ -371,6 +395,42 @@ export default function StatsPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Right Column (Charts) */}
+            <div className="flex flex-col gap-8">
+              {/* Daily Activity Chart */}
+              <div className="bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold mb-4">時間帯別ポモドーロ数</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={dailyActivityData}>
+                    <XAxis dataKey="hour" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Legend />
+                    <Bar dataKey="count" fill="#8884d8" name="ポモドーロ数" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Weekly Activity Chart */}
+              <div className="bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold mb-4">曜日別ポモドーロ数</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={weeklyActivityData}>
+                    <XAxis dataKey="day" stroke="#9ca3af"
+                      tickFormatter={(value) => {
+                        const days = ['日', '月', '火', '水', '木', '金', '土'];
+                        return days[value];
+                      }}
+                    />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Legend />
+                    <Bar dataKey="count" fill="#82ca9d" name="ポモドーロ数" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
