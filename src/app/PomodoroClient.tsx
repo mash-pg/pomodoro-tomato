@@ -39,7 +39,7 @@ export default function PomodoroClient() {
   const [autoStartWork, setAutoStartWork] = useState(false);
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [muteNotifications, setMuteNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(true); // Default to dark mode
+  const { theme, setTheme, darkMode, setDarkMode } = useSettings();
 
   // --- Timer State ---
   const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro');
@@ -97,6 +97,7 @@ export default function PomodoroClient() {
     setAutoStartBreak(settings.autoStartBreak);
     setMuteNotifications(settings.muteNotifications);
     setDarkMode(settings.darkMode);
+    setTheme(settings.theme);
 
     // Save settings to localStorage for persistence across reloads
     try {
@@ -124,7 +125,7 @@ export default function PomodoroClient() {
         console.error('Error saving user settings:', JSON.stringify(error, null, 2));
       }
     }
-  }, [user]); // Added user to dependency array
+  }, [user, setTheme, setDarkMode]); // Added user to dependency array
 
   // --- Update settingsRef for GlobalSettingsModalWrapper ---
   useEffect(() => {
@@ -138,10 +139,11 @@ export default function PomodoroClient() {
         autoStartBreak,
         muteNotifications,
         darkMode,
+        theme,
       },
       onSave: handleSaveSettings,
     };
-  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, handleSaveSettings, settingsRef]);
+  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, theme, handleSaveSettings, settingsRef]);
 
   // --- Load Initial Settings from LocalStorage ---
   useEffect(() => {
@@ -159,12 +161,13 @@ export default function PomodoroClient() {
           setMuteNotifications(savedSettings.muteNotifications);
           // Ensure darkMode has a fallback to prevent errors
           setDarkMode(savedSettings.darkMode ?? true);
+          setTheme(savedSettings.theme ?? 'dark');
         }
       }
     } catch (error) {
       console.error('Error loading settings from localStorage:', error);
     }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [setDarkMode, setTheme]); // Empty dependency array ensures this runs only once on mount
 
   // --- Fetch user, sessions, and settings on mount and auth state change ---
   useEffect(() => {
@@ -227,7 +230,7 @@ export default function PomodoroClient() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getDuration]);
+  }, [getDuration, setDarkMode]);
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
@@ -433,7 +436,7 @@ export default function PomodoroClient() {
 
   // --- Render --- 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
 
         {/* Mode Switcher */}
@@ -510,7 +513,7 @@ export default function PomodoroClient() {
         {user && (
           <div className="mt-12 text-lg text-left w-full max-w-xs">
             <h2 className="text-xl font-bold mb-4">あなたのポモドーロ統計</h2>
-            <div className={`p-4 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className="p-4 rounded-lg shadow-md">
               <p className="mb-2">今日: <span className="font-bold">{dailyStats.count}</span> ポモドーロ / <span className="font-bold">{dailyStats.time}</span> 分</p>
               <p className="mb-2">今週: <span className="font-bold">{weeklyStats.count}</span> ポモドーロ / <span className="font-bold">{weeklyStats.time}</span> 分</p>
               <p>今月: <span className="font-bold">{monthlyStats.count}</span> ポモドーロ / <span className="font-bold">{monthlyStats.time}</span> 分</p>

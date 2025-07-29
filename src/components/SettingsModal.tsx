@@ -1,21 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { PomodoroSettings } from '@/context/SettingsContext'; // Import the shared type
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialSettings: {
-    workDuration: number;
-    shortBreakDuration: number;
-    longBreakDuration: number;
-    longBreakInterval: number;
-    autoStartWork: boolean;
-    autoStartBreak: boolean;
-    muteNotifications: boolean;
-    darkMode: boolean;
-  };
-  onSave: (settings: SettingsModalProps['initialSettings']) => void;
+  initialSettings: PomodoroSettings;
+  onSave: (settings: PomodoroSettings) => void;
 }
 
 export default function SettingsModal({
@@ -32,6 +24,7 @@ export default function SettingsModal({
   const [autoStartBreak, setAutoStartBreak] = useState(initialSettings.autoStartBreak);
   const [muteNotifications, setMuteNotifications] = useState(initialSettings.muteNotifications);
   const [darkMode, setDarkMode] = useState(initialSettings.darkMode);
+  const [theme, setTheme] = useState(initialSettings.theme);
 
   // Update local state when initialSettings prop changes
   useEffect(() => {
@@ -43,6 +36,7 @@ export default function SettingsModal({
     setAutoStartBreak(initialSettings.autoStartBreak);
     setMuteNotifications(initialSettings.muteNotifications);
     setDarkMode(initialSettings.darkMode);
+    setTheme(initialSettings.theme);
   }, [initialSettings]);
 
   const handleSave = () => {
@@ -56,6 +50,7 @@ export default function SettingsModal({
       autoStartBreak,
       muteNotifications,
       darkMode,
+      theme,
     });
     onClose();
   };
@@ -130,6 +125,21 @@ export default function SettingsModal({
             onChange={(e) => handleNumberChange(setLongBreakInterval, e.target.value)}
             className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           />
+        </div>
+
+        {/* Theme Selector */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">テーマ</h3>
+          <select
+            id="theme-selector"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          >
+            <option value="dark">ダーク</option>
+            <option value="forest">フォレスト</option>
+            <option value="aqua">アクア</option>
+          </select>
         </div>
 
         {/* General Options */}
