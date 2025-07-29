@@ -19,7 +19,15 @@ CREATE TABLE pomodoro_sessions (
   duration_minutes INT NOT NULL
 );
 
--- 3. Enable RLS and create policies for user_settings
+-- 3. Create user_goals table
+CREATE TABLE user_goals (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  daily_pomodoros INT NOT NULL DEFAULT 8,
+  weekly_pomodoros INT NOT NULL DEFAULT 40,
+  monthly_pomodoros INT NOT NULL DEFAULT 160
+);
+
+-- 4. Enable RLS and create policies for user_settings
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow individual access to settings"
@@ -27,7 +35,7 @@ ON user_settings FOR ALL
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
--- 4. Enable RLS and create policies for pomodoro_sessions
+-- 5. Enable RLS and create policies for pomodoro_sessions
 ALTER TABLE pomodoro_sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow individual access to sessions"
@@ -35,17 +43,28 @@ ON pomodoro_sessions FOR ALL
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
--- 5. Create function to handle new user creation
+-- 6. Enable RLS and create policies for user_goals
+ALTER TABLE user_goals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow individual access to goals"
+ON user_goals FOR ALL
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+
+-- 7. Create function to handle new user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
-  INSERT INTO public.user_settings (user_id) -- Insert default values for new columns
+  INSERT INTO public.user_settings (user_id)
+  VALUES (new.id);
+  INSERT INTO public.user_goals (user_id) -- Also insert default goals for new user
   VALUES (new.id);
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. Create trigger to call the function on new user creation
+-- 8. Create trigger to call the function on new user creation
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
