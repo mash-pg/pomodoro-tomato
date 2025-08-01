@@ -104,6 +104,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
               カレンダー
             </button>
             <button
+              onClick={() => handleLinkClick('/weekly-time-calendar')}
+              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+            >
+              週時間カレンダー
+            </button>
+            <button
               onClick={handleLogout}
               className="block text-white bg-red-600 hover:bg-red-700 py-2 px-4 rounded transition-colors duration-200 text-left"
               disabled={loading}
