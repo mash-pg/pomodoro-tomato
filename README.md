@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## 🚀 Getting Started
 
 First, run the development server:
 
@@ -16,53 +16,53 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Features
+## ✨ Features
 
-This application is a comprehensive Pomodoro timer designed to enhance productivity. It includes the following features:
+このアプリケーションは、生産性を向上させるために設計された多機能ポモドーロタイマーです。以下の機能が含まれています。
 
-### 1. Pomodoro Timer
+### 1. ポモドーロタイマー
 
-The core of the application. It features a customizable timer for work sessions, short breaks, and long breaks.
+このアプリケーションの中核機能です。作業セッション、短い休憩、長い休憩の時間をカスタマイズできます。
 
 ```
 +---------------------------------+
-|            Pomodoro             |
+|            ポモドーロ             |
 |                                 |
 |             25:00               |
 |                                 |
-|      [ START ] [ RESET ]        |
+|      [ スタート ] [ リセット ]      |
 |                                 |
-|   Today: 4 Pomodoros / 100 min  |
+|   今日の合計: 4ポモドーロ / 100分   |
 +---------------------------------+
 ```
 
-### 2. Statistics Page
+### 2. 統計ページ
 
-Track your progress with detailed statistics. Set daily, weekly, and monthly goals, and view your activity patterns in charts.
-
-```
-+---------------------------------+
-|          Your Statistics        |
-|                                 |
-| Today:   [ 5/8 ] Pomodoros      |
-| This Week: [ 25/40 ] Pomodoros   |
-| This Month:[ 100/160 ] Pomodoros |
-|                                 |
-| [ Recent Sessions... ]          |
-| [ Manual Add...    ]          |
-+---------------------------------+
-```
-
-### 3. Calendar View
-
-Review your past activity with a monthly calendar view, which shows the number of Pomodoros completed each day.
+詳細な統計で進捗を追跡します。日次、週次、月次の目標を設定し、活動パターンをグラフで確認できます。
 
 ```
 +---------------------------------+
-|        Pomodoro Calendar        |
+|           あなたの統計            |
 |                                 |
-|      <   August 2025   >        |
-|  Su  Mo  Tu  We  Th  Fr  Sa     |
+| 今日:      [ 5/8 ] ポモドーロ     |
+| 今週:      [ 25/40 ] ポモドーロ   |
+| 今月:      [ 100/160 ] ポモドーロ |
+|                                 |
+| [ 最近のセッション... ]         |
+| [ 手動で追加...    ]         |
++---------------------------------+
+```
+
+### 3. カレンダー表示
+
+月間カレンダーで過去の活動を振り返ることができます。各日に完了したポモドーロの数が表示されます。
+
+```
++---------------------------------+
+|        ポモドーロカレンダー         |
+|                                 |
+|      <   2025年8月   >        |
+|  日  月  火  水  木  金  土     |
 |                  1   2 (8)      |
 |   3   4   5   6   7   8   9     |
 |  10  11  12 (5) 13  14  15     |
@@ -70,20 +70,20 @@ Review your past activity with a monthly calendar view, which shows the number o
 +---------------------------------+
 ```
 
-### 4. Weekly Time Calendar
+### 4. 週時間カレンダー
 
-A responsive weekly calendar that visualizes your Pomodoro sessions by time. The layout adapts to your screen size.
+ポモドーロセッションを時間単位で可視化する、レスポンシブ対応の週間カレンダーです。画面サイズに応じてレイアウトが変化します。
 
-**PC View:**
-On larger screens, the calendar displays a full week with vertical timelines for each day, allowing for a detailed overview of your productivity.
+**PC表示:**
+大きな画面では、各日の縦型タイムライン付きで1週間分が表示され、生産性を詳細に把握できます。
 
 ```
 +----------------------------------------------------------------------------------------------------+
-|                                       Weekly Pomodoro (Time)                                       |
+|                                       週ごとのポモドーロ (時間)                                      |
 +----------------------------------------------------------------------------------------------------+
-| < Previous Week                      YYYY-MM-DD - YYYY-MM-DD                       Next Week >     |
+| < 前の週                      YYYY年MM月DD日 - YYYY年MM月DD日                       次の週 >     |
 +----------------------------------------------------------------------------------------------------+
-|      Sun          Mon          Tue          Wed          Thu          Fri          Sat             |
+|      日          月          火          水          木          金          土             |
 |    MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD           |
 |     8.5h         7.0h         9.2h         6.5h         8.0h         5.5h         10.0h          |
 |  +--------+   +--------+   +--------+   +--------+   +--------+   +--------+   +--------+        |
@@ -94,46 +94,46 @@ On larger screens, the calendar displays a full week with vertical timelines for
 +----------------------------------------------------------------------------------------------------+
 ```
 
-**Mobile View:**
-On smaller screens, the layout adapts to a vertical list, with each day displaying a horizontal timeline for clear readability.
+**モバイル表示:**
+小さな画面では、レイアウトが縦長のリスト形式に変化し、各日の横型タイムラインで分かりやすく表示されます。
 
 ```
 +---------------------------------+
-|      Weekly Pomodoro (Time)     |
+|      週ごとのポモドーロ (時間)      |
 +---------------------------------+
-| < Prev Week       Next Week >   |
-|      YYYY-MM-DD - YYYY-MM-DD      |
+| < 前の週       次の週 >   |
+|      YYYY年MM月DD日 - YYYY年MM月DD日      |
 +---------------------------------+
-| Sun MM/DD 8.5h [=====-----]     |
+| 日 MM/DD 8.5h [=====-----]     |
 +---------------------------------+
-| Mon MM/DD 7.0h [====------]     |
+| 月 MM/DD 7.0h [====------]     |
 +---------------------------------+
-| Tue MM/DD 9.2h [======----]     |
+| 火 MM/DD 9.2h [======----]     |
 +---------------------------------+
 | ...                             |
 +---------------------------------+
 ```
 
-### 5. User Authentication & Settings
+### 5. ユーザー認証と設定
 
-Sign up and log in to sync your data across devices. You can customize timer durations, auto-start behavior, and theme settings.
+サインアップとログインで、複数のデバイス間でデータを同期できます。タイマーの時間、自動開始の有無、テーマ（ダーク/ライト）などをカスタマイズ可能です。
 
 ```
 +---------------------------------+
-|             Settings            |
+|              設定               |
 |                                 |
-| Work Duration:     [ 25 ] min   |
-| Short Break:       [ 5  ] min   |
-| Long Break:        [ 15 ] min   |
+| 作業時間:          [ 25 ] 分    |
+| 短い休憩:          [ 5  ] 分    |
+| 長い休憩:          [ 15 ] 分    |
 |                                 |
-| Auto-start Break:  [ On/Off ]   |
-| Theme:             [ Dark/Light ] |
+| 休憩を自動で開始:    [ オン/オフ ]   |
+| テーマ:              [ ダーク/ライト ] |
 |                                 |
-|            [ Save ]             |
+|            [ 保存 ]             |
 +---------------------------------+
 ```
 
-## Learn More
+## 📚 Learn More
 
 To learn more about Next.js, take a look at the following resources:
 
@@ -142,7 +142,7 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## ☁️ Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
