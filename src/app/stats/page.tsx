@@ -25,7 +25,8 @@ interface Goals {
 
 export default function StatsPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [allSessions, setAllSessions] = useState<PomodoroSession[]>([]);
+  const [paginatedSessions, setPaginatedSessions] = useState<PomodoroSession[]>([]);
+  const [allSessionsForStats, setAllSessionsForStats] = useState<PomodoroSession[]>([]);
   const [dailyStats, setDailyStats] = useState<Stats>({ count: 0, time: 0 });
   const [weeklyStats, setWeeklyStats] = useState<Stats>({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState<Stats>({ count: 0, time: 0 });
@@ -42,29 +43,51 @@ export default function StatsPage() {
   const [manualTime, setManualTime] = useState('');
   const [addLoading, setAddLoading] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sessionsPerPage] = useState(10);
+  const [totalSessions, setTotalSessions] = useState(0);
+
   useEffect(() => {
     const today = new Date();
     setManualDate(today.toISOString().split('T')[0]);
     setManualTime(today.toTimeString().split(' ')[0].substring(0, 5));
   }, []);
 
-  const fetchUserAndData = useCallback(async () => {
+  const fetchUserAndData = useCallback(async (page = 1) => {
     setLoading(true);
     setError(null);
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
 
     if (user) {
-      const { data: sessions, error: fetchError } = await supabase
+      const from = (page - 1) * sessionsPerPage;
+      const to = from + sessionsPerPage - 1;
+
+      // Fetch paginated sessions for display
+      const { data: sessions, error: fetchError, count } = await supabase
         .from('pomodoro_sessions')
-        .select('id, created_at, duration_minutes')
+        .select('id, created_at, duration_minutes', { count: 'exact' })
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (fetchError) {
         setError('セッションの読み込みに失敗しました。');
       } else {
-        setAllSessions(sessions as PomodoroSession[]);
+        setPaginatedSessions(sessions as PomodoroSession[]);
+        setTotalSessions(count || 0);
+      }
+
+      // Fetch all sessions for stats calculation
+      const { data: allSessionsData, error: allSessionsError } = await supabase
+        .from('pomodoro_sessions')
+        .select('created_at, duration_minutes')
+        .eq('user_id', user.id);
+
+      if (allSessionsError) {
+        setError('統計データの読み込みに失敗しました。');
+      } else {
+        setAllSessionsForStats(allSessionsData as PomodoroSession[]);
       }
 
       const { data: goalsData, error: goalsError } = await supabase
@@ -79,17 +102,19 @@ export default function StatsPage() {
         setGoals(goalsData);
       }
     } else {
-      setAllSessions([]);
+      setPaginatedSessions([]);
+      setAllSessionsForStats([]);
+      setTotalSessions(0);
       setError('統計情報を表示するにはログインしてください。');
     }
     setLoading(false);
-  }, []);
+  }, [sessionsPerPage]);
 
   useEffect(() => {
-    fetchUserAndData();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => fetchUserAndData());
+    fetchUserAndData(currentPage);
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => fetchUserAndData(currentPage));
     return () => authListener.subscription.unsubscribe();
-  }, [fetchUserAndData]);
+  }, [fetchUserAndData, currentPage]);
 
   useEffect(() => {
     const now = new Date();
@@ -119,7 +144,7 @@ export default function StatsPage() {
     const weeklyActivity: { [day: number]: number } = {};
     for (let i = 0; i < 7; i++) weeklyActivity[i] = 0;
 
-    allSessions.forEach(session => {
+    allSessionsForStats.forEach(session => {
       const sessionDate = new Date(session.created_at);
 
       if (sessionDate.toDateString() === todayStr) {
@@ -145,7 +170,7 @@ export default function StatsPage() {
     setDailyActivityData(Object.keys(dailyActivity).map(key => ({ hour: Number(key), count: dailyActivity[Number(key)] })));
     setWeeklyActivityData(Object.keys(weeklyActivity).map(key => ({ day: Number(key), count: weeklyActivity[Number(key)] })));
 
-  }, [allSessions]);
+  }, [allSessionsForStats]);
 
   const handleSaveGoals = async () => {
     if (!user) return alert('目標を保存するにはログインしてください。');
@@ -179,18 +204,20 @@ export default function StatsPage() {
     let endDate: Date;
 
     if (period === 'day') {
-      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else if (period === 'week') {
-      const dayOfWeekUtc = now.getUTCDay();
-      const diffUtc = now.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1);
-      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
+      startDate = new Date(now);
+      const day = startDate.getDay();
+      const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+      startDate.setDate(diff);
+      startDate.setHours(0, 0, 0, 0);
       endDate = new Date(startDate);
-      endDate.setUTCDate(startDate.getUTCDate() + 6);
-      endDate.setUTCHours(23, 59, 59, 999);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
     } else { // month
-      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
     const { error: deleteError } = await supabase
@@ -205,7 +232,7 @@ export default function StatsPage() {
       setError(`${period === 'day' ? '日' : period === 'week' ? '週' : '月'}のセッションのクリアに失敗しました。`);
     } else {
       alert(`この${period === 'day' ? '日' : period === 'week' ? '週' : '月'}のすべてのセッションがクリアされました。`);
-      fetchUserAndData();
+      fetchUserAndData(currentPage);
     }
     setLoading(false);
   };
@@ -234,7 +261,7 @@ export default function StatsPage() {
       setError('セッションの削除に失敗しました。');
     } else {
       alert('セッションが正常に削除されました。');
-      fetchUserAndData();
+      fetchUserAndData(currentPage);
     }
     setLoading(false);
   };
@@ -260,7 +287,7 @@ export default function StatsPage() {
       setError('手動セッションの追加に失敗しました。');
     } else {
       alert(`${manualPomodoros}件のセッションが正常に追加されました。`);
-      fetchUserAndData();
+      fetchUserAndData(currentPage);
     }
     setAddLoading(false);
   };
@@ -273,7 +300,7 @@ export default function StatsPage() {
         {loading && <p className="text-gray-400">統計を読み込み中...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        {!user && !loading && <p className="text-gray-400">統計情報を表示するにはログインしてください。</p>}
+        {!user && !loading && !error && <p className="text-gray-400">統計情報を表示するにはログインしてください。</p>}
 
         {user && !loading && !error && (
           <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -368,26 +395,45 @@ export default function StatsPage() {
 
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-bold mb-4">最近のセッション</h2>
-                {allSessions.length === 0 ? (
+                {paginatedSessions.length === 0 ? (
                   <p className="text-gray-400">まだセッションが記録されていません。</p>
                 ) : (
-                  <div className="max-h-96 overflow-y-auto">
-                    {allSessions.map((session) => (
-                      <div key={session.id} className="flex justify-between items-center border-b border-gray-700 py-2 last:border-b-0">
-                        <span>{new Date(session.created_at).toLocaleString()}</span>
-                        <div className="flex items-center space-x-2 mr-24">
-                          <span>{session.duration_minutes} 分</span>
-                          <button
-                            onClick={() => deleteSession(session.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-2 rounded-md"
-                            disabled={loading}
-                          >
-                            削除
-                          </button>
+                  <>
+                    <div className="max-h-96 overflow-y-auto">
+                      {paginatedSessions.map((session) => (
+                        <div key={session.id} className="flex justify-between items-center border-b border-gray-700 py-2 last:border-b-0">
+                          <span>{new Date(session.created_at).toLocaleString()}</span>
+                          <div className="flex items-center space-x-2 mr-24">
+                            <span>{session.duration_minutes} 分</span>
+                            <button
+                              onClick={() => deleteSession(session.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-2 rounded-md"
+                              disabled={loading}
+                            >
+                              削除
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1 || loading}
+                        className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50"
+                      >
+                        前へ
+                      </button>
+                      <span>ページ {currentPage} / {Math.ceil(totalSessions / sessionsPerPage)}</span>
+                      <button
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                        disabled={currentPage * sessionsPerPage >= totalSessions || loading}
+                        className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50"
+                      >
+                        次へ
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
