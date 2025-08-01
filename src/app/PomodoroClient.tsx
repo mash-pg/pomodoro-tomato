@@ -234,20 +234,26 @@ export default function PomodoroClient() {
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
-    const now = new Date();
-    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const now = new Date(); // Current date and time in local timezone
 
-    const dayOfWeekUtc = todayUtc.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const diffUtc = todayUtc.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1); // Adjust for Monday start
-    const startOfWeekUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
+    // --- Daily Calculation ---
+    const todayStr = now.toDateString();
 
-    const endOfWeekUtc = new Date(startOfWeekUtc);
-    endOfWeekUtc.setUTCDate(startOfWeekUtc.getUTCDate() + 6);
-    endOfWeekUtc.setUTCHours(23, 59, 59, 999);
+    // --- Weekly Calculation (Local Timezone) ---
+    const startOfWeek = new Date(now);
+    const dayOfWeek = startOfWeek.getDay(); // 0 (Sun) to 6 (Sat)
+    const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    startOfWeek.setDate(diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-    const startOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const endOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-    endOfMonthUtc.setUTCHours(23, 59, 59, 999);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    // --- Monthly Calculation (Local Timezone) ---
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
 
     let dailyCount = 0;
     let dailyTime = 0;
@@ -257,23 +263,22 @@ export default function PomodoroClient() {
     let monthlyTime = 0;
 
     allSessions.forEach(session => {
-      const sessionDate = new Date(session.created_at);
-      const sessionDayUtc = new Date(Date.UTC(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate()));
+      const sessionDate = new Date(session.created_at); // Converts timestamp to local Date object
 
-      // Daily
-      if (sessionDayUtc.getTime() === todayUtc.getTime()) {
+      // Daily check
+      if (sessionDate.toDateString() === todayStr) {
         dailyCount++;
         dailyTime += session.duration_minutes;
       }
 
-      // Weekly
-      if (sessionDayUtc >= startOfWeekUtc && sessionDayUtc <= endOfWeekUtc) {
+      // Weekly check
+      if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
       }
 
-      // Monthly
-      if (sessionDayUtc >= startOfMonthUtc && sessionDayUtc <= endOfMonthUtc) {
+      // Monthly check
+      if (sessionDate >= startOfMonth && sessionDate <= endOfMonth) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
       }

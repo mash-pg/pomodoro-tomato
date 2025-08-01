@@ -93,36 +93,46 @@ export default function StatsPage() {
 
   useEffect(() => {
     const now = new Date();
-    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const dayOfWeekUtc = todayUtc.getUTCDay();
-    const diffUtc = todayUtc.getUTCDate() - dayOfWeekUtc + (dayOfWeekUtc === 0 ? -6 : 1);
-    const startOfWeekUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), diffUtc));
+    const todayStr = now.toDateString();
 
-    const endOfWeekUtc = new Date(startOfWeekUtc);
-    endOfWeekUtc.setUTCDate(startOfWeekUtc.getUTCDate() + 6);
-    endOfWeekUtc.setUTCHours(23, 59, 59, 999);
+    const startOfWeek = new Date(now);
+    const dayOfWeek = startOfWeek.getDay();
+    const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    startOfWeek.setDate(diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-    const startOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const endOfMonthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-    endOfMonthUtc.setUTCHours(23, 59, 59, 999);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
 
     let dailyCount = 0, dailyTime = 0;
     let weeklyCount = 0, weeklyTime = 0;
     let monthlyCount = 0, monthlyTime = 0;
 
+    const dailyActivity: { [hour: number]: number } = {};
+    for (let i = 0; i < 24; i++) dailyActivity[i] = 0;
+
+    const weeklyActivity: { [day: number]: number } = {};
+    for (let i = 0; i < 7; i++) weeklyActivity[i] = 0;
+
     allSessions.forEach(session => {
       const sessionDate = new Date(session.created_at);
-      const sessionDayUtc = new Date(Date.UTC(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate()));
 
-      if (sessionDayUtc.getTime() === todayUtc.getTime()) {
+      if (sessionDate.toDateString() === todayStr) {
         dailyCount++;
         dailyTime += session.duration_minutes;
+        dailyActivity[sessionDate.getHours()]++;
       }
-      if (sessionDayUtc >= startOfWeekUtc && sessionDayUtc <= endOfWeekUtc) {
+      if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
+        weeklyActivity[sessionDate.getDay()]++;
       }
-      if (sessionDayUtc >= startOfMonthUtc && sessionDayUtc <= endOfMonthUtc) {
+      if (sessionDate >= startOfMonth && sessionDate <= endOfMonth) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
       }
@@ -131,22 +141,6 @@ export default function StatsPage() {
     setDailyStats({ count: dailyCount, time: dailyTime });
     setWeeklyStats({ count: weeklyCount, time: weeklyTime });
     setMonthlyStats({ count: monthlyCount, time: monthlyTime });
-
-    // Detailed Stats for Charts
-    const dailyActivity: { [hour: number]: number } = {};
-    for (let i = 0; i < 24; i++) dailyActivity[i] = 0;
-
-    const weeklyActivity: { [day: number]: number } = {}; // 0: Sunday, 1: Monday, ..., 6: Saturday
-    for (let i = 0; i < 7; i++) weeklyActivity[i] = 0;
-
-    allSessions.forEach(session => {
-      const sessionDate = new Date(session.created_at);
-      const sessionHour = sessionDate.getHours();
-      const sessionDay = sessionDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
-
-      dailyActivity[sessionHour]++;
-      weeklyActivity[sessionDay]++;
-    });
 
     setDailyActivityData(Object.keys(dailyActivity).map(key => ({ hour: Number(key), count: dailyActivity[Number(key)] })));
     setWeeklyActivityData(Object.keys(weeklyActivity).map(key => ({ day: Number(key), count: weeklyActivity[Number(key)] })));
@@ -252,12 +246,12 @@ export default function StatsPage() {
     setAddLoading(true);
     const [year, month, day] = manualDate.split('-').map(Number);
     const [hours, minutes] = manualTime.split(':').map(Number);
-    const sessionDateTimeUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+    const sessionDateTime = new Date(year, month - 1, day, hours, minutes, 0);
 
     const sessionsToInsert = Array.from({ length: manualPomodoros }, () => ({
       user_id: user.id,
       duration_minutes: manualDuration,
-      created_at: sessionDateTimeUtc.toISOString(),
+      created_at: sessionDateTime.toISOString(),
     }));
 
     const { error } = await supabase.from('pomodoro_sessions').insert(sessionsToInsert);
