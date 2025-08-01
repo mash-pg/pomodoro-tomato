@@ -62,18 +62,23 @@ export default function WeeklyTimeCalendar({ user, sessions }: WeeklyCalendarPro
           次の週 &gt;
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-4 text-center">
+      {/* Responsive Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-4 text-center">
         {daysInWeek.map(day => (
-          <div key={day.toISOString()} className="flex flex-col items-center gap-4 p-2 border border-gray-700 rounded-md">
-            <div className="w-full">
+          <div key={day.toISOString()} className="p-2 md:p-4 border border-gray-700 rounded-md flex flex-row md:flex-col items-center md:items-center gap-4">
+            {/* Date Info */}
+            <div className="text-center w-24 md:w-full flex-shrink-0 md:flex-shrink-1">
               <div className="font-bold text-lg">{format(day, "EEE", { locale: ja })}</div>
               <div className="text-sm">{format(day, "MM/dd")}</div>
               <div className="mt-2 text-green-400 text-xl font-bold">
                 {(getPomodoroTimeForDay(day) / 60).toFixed(1)}
               </div>
-              <div className="text-xs text-gray-400 mb-4">時間</div>
+              <div className="text-xs text-gray-400 mb-0 md:mb-4">時間</div>
             </div>
-            <DayTimeline sessions={getSessionsForDay(day)} />
+            {/* Timeline */}
+            <div className="flex-grow w-full">
+              <DayTimeline sessions={getSessionsForDay(day)} />
+            </div>
           </div>
         ))}
       </div>
