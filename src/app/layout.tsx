@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -10,6 +10,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ポモドーロタイマー",
   description: "Supabaseと連携したシンプルなポモドーロタイマーです。",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FF6347",
 };
 
 export default function RootLayout({
@@ -18,10 +23,6 @@ export default function RootLayout({
 {
   return (
     <html lang="ja">
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#FF6347" /> {/* アプリのテーマカラーを設定 */}
-      </head>
       <body className={inter.className}>
         <SettingsProvider>
           <Navbar />
