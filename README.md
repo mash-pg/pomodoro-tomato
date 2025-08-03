@@ -1,22 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gemini CLI Tomato
 
-## 🚀 Getting Started
+このプロジェクトは[`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)でブートストラップされた[Next.js](https://nextjs.org)プロジェクトです。
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## ✨ Features
+## ✨ 機能
 
 このアプリケーションは、生産性を向上させるために設計された多機能ポモドーロタイマーです。以下の機能が含まれています。
 
@@ -24,6 +10,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 このアプリケーションの中核機能です。作業セッション、短い休憩、長い休憩の時間をカスタマイズできます。
 
+<!-- ![Pomodoro Timer Screenshot](https://via.placeholder.com/400x250.png?text=Pomodoro+Timer) -->
 ```
 +---------------------------------+
 |            ポモドーロ             |
@@ -40,6 +27,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 詳細な統計で進捗を追跡します。日次、週次、月次の目標を設定し、活動パターンをグラフで確認できます。
 
+<!-- ![Statistics Page Screenshot](https://via.placeholder.com/400x250.png?text=Statistics+Page) -->
 ```
 +---------------------------------+
 |           あなたの統計            |
@@ -57,6 +45,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 月間カレンダーで過去の活動を振り返ることができます。各日に完了したポモドーロの数が表示されます。
 
+<!-- ![Calendar View Screenshot](https://via.placeholder.com/400x250.png?text=Calendar+View) -->
 ```
 +---------------------------------+
 |        ポモドーロカレンダー         |
@@ -74,76 +63,89 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ポモドーロセッションを時間単位で可視化する、レスポンシブ対応の週間カレンダーです。画面サイズに応じてレイアウトが変化します。
 
-**PC表示:**
-大きな画面では、各日の縦型タイムライン付きで1週間分が表示され、生産性を詳細に把握できます。
-
-```
-+----------------------------------------------------------------------------------------------------+
-|                                       週ごとのポモドーロ (時間)                                      |
-+----------------------------------------------------------------------------------------------------+
-| < 前の週                      YYYY年MM月DD日 - YYYY年MM月DD日                       次の週 >     |
-+----------------------------------------------------------------------------------------------------+
-|      日          月          火          水          木          金          土             |
-|    MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD           |
-|     8.5h         7.0h         9.2h         6.5h         8.0h         5.5h         10.0h          |
-|  +--------+   +--------+   +--------+   +--------+   +--------+   +--------+   +--------+        |
-|  |   ||   |   | ||     |   |   |||  |   |  ||    |   | ||||   |   |   ||   |   |  ||||| |        |
-|  |   ||   |   | ||     |   |   |||  |   |  ||    |   | ||||   |   |   ||   |   |  ||||| |        |
-|  |   ||   |   | ||     |   |   |||  |   |  ||    |   | ||||   |   |   ||   |   |  ||||| |        |
-|  +--------+   +--------+   +--------+   +--------+   +--------+   +--------+   +--------+        |
-+----------------------------------------------------------------------------------------------------+
-```
-
-**モバイル表示:**
-小さな画面では、レイアウトが縦長のリスト形式に変化し、各日の横型タイムラインで分かりやすく表示されます。
-
-```
-+---------------------------------+
-|      週ごとのポモドーロ (時間)      |
-+---------------------------------+
-| < 前の週       次の週 >   |
-|      YYYY年MM月DD日 - YYYY年MM月DD日      |
-+---------------------------------+
-| 日 MM/DD 8.5h [=====-----]     |
-+---------------------------------+
-| 月 MM/DD 7.0h [====------]     |
-+---------------------------------+
-| 火 MM/DD 9.2h [======----]     |
-+---------------------------------+
-| ...                             |
-+---------------------------------+
-```
+<!-- ![Weekly Time Calendar Screenshot](https://via.placeholder.com/400x250.png?text=Weekly+Time+Calendar) -->
 
 ### 5. ユーザー認証と設定
 
 サインアップとログインで、複数のデバイス間でデータを同期できます。タイマーの時間、自動開始の有無、テーマ（ダーク/ライト）などをカスタマイズ可能です。
 
-```
-+---------------------------------+
-|              設定               |
-|                                 |
-| 作業時間:          [ 25 ] 分    |
-| 短い休憩:          [ 5  ] 分    |
-| 長い休憩:          [ 15 ] 分    |
-|                                 |
-| 休憩を自動で開始:    [ オン/オフ ]   |
-| テーマ:              [ ダーク/ライト ] |
-|                                 |
-|            [ 保存 ]             |
-+---------------------------------+
-```
+<!-- ![Settings Screenshot](https://via.placeholder.com/400x250.png?text=Settings) -->
 
-## 📚 Learn More
+## 🛠️ 技術スタック
 
-To learn more about Next.js, take a look at the following resources:
+*   **フレームワーク**: [Next.js](https://nextjs.org/)
+*   **言語**: [TypeScript](https://www.typescriptlang.org/)
+*   **スタイリング**: [Tailwind CSS](https://tailwindcss.com/)
+*   **UIコンポーネント**: [React Calendar](https://github.com/wojtekmaj/react-calendar)
+*   **チャート**: [Recharts](https://recharts.org/)
+*   **データベース**: [Supabase](https://supabase.io/)
+*   **テスト**: [Jest](https://jestjs.io/), [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+*   **デプロイ**: [Vercel](https://vercel.com/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📦 セットアップとデプロイ
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. Supabase プロジェクトのセットアップ
 
-## ☁️ Deploy on Vercel
+1.  [Supabase](https://supabase.com/)にサインアップし、新しいプロジェクトを作成します。
+2.  プロジェクトのダッシュボードで、**SQL Editor**に移動します。
+3.  `sql/schema.sql`の内容をコピーして実行し、テーブル、ポリシー、トリガーを作成します。
+4.  同様に`sql/user_goals.sql`を実行して、初期データを挿入します（任意）。
+5.  **Settings** > **API** に移動し、`Project URL`と`anon` `public`キーを控えておきます。これらは後で環境変数として使用します。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 2. ローカルでの実行
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1.  **リポジトリをクローンする**
+    ```bash
+    git clone https://github.com/your-username/gemini-cli-tomato.git
+    cd gemini-cli-tomato
+    ```
+2.  **依存関係をインストールする**
+    ```bash
+    npm install
+    ```
+3.  **環境変数を設定する**
+    プロジェクトのルートに`.env.local`ファイルを作成し、Supabaseの認証情報を追加します。
+    ```
+    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+    ```
+4.  **開発サーバーを起動する**
+    ```bash
+    npm run dev
+    ```
+    ブラウザで[http://localhost:3000](http://localhost:3000)を開いて結果を確認します。
+
+### 3. Vercel へのデプロイ
+
+1.  リポジトリをGitHubにプッシュします。
+2.  [Vercel](https://vercel.com/)にサインアップし、GitHubアカウントを連携します。
+3.  **New Project**から、デプロイしたいリポジトリを選択します。
+4.  **Environment Variables**セクションで、以下の環境変数を設定します。
+    *   `NEXT_PUBLIC_SUPABASE_URL`
+    *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5.  **Deploy**をクリックすると、ビルドとデプロイが自動的に開始されます。
+
+## 🗄️ データベースとログ
+
+### スキーマ
+
+このプロジェクトはSupabaseをバックエンドとして使用しています。データベースには以下のテーブルが含まれます。
+
+*   `user_settings`: ユーザーごとのタイマー設定を保存します。
+*   `pomodoro_sessions`: 完了したポモドーロセッションの記録を保存します。
+*   `user_goals`: ユーザーが設定した日次、週次、月次の目標を保存します。
+
+すべてのテーブルはRow Level Security (RLS) が有効になっており、ユーザーは自身のデータにのみアクセスできます。
+
+### ログの確認
+
+*   **Supabase**: Supabaseダッシュボードの **Logs** > **PostgREST Logs** からAPIリクエストのログを確認できます。データベースに関する問題は **Database** > **Logs** で確認可能です。
+*   **Vercel**: Vercelのプロジェクトダッシュボードの **Logs** タブから、リアルタイムのアプリケーションログ（ビルドログ、関数ログなど）を確認できます。
+
+## 🤝 コントリビューション
+
+コントリビューションを歓迎します！Issueの作成やプルリクエストの送信を気軽に行ってください。
+
+## 📄 ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
