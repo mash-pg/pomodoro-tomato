@@ -237,7 +237,7 @@ interface UserSettings {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getDuration, setDarkMode]);
+  }, [getDuration, setDarkMode, completionCount]);
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
