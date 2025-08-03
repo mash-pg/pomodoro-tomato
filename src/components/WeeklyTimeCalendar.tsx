@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay } from "date-fns";
-import { ja } from "date-fns/locale";
-import DayTimeline from "./DayTimeline";
+import { ja } from "date-fns/locale/ja";
+import dynamic from "next/dynamic";
+
+const DynamicDayTimeline = dynamic(() => import("./DayTimeline"), { ssr: false });
 
 interface PomodoroSession {
   id: number;
@@ -77,7 +79,7 @@ export default function WeeklyTimeCalendar({ user, sessions }: WeeklyCalendarPro
             </div>
             {/* Timeline */}
             <div className="flex-grow w-full">
-              <DayTimeline sessions={getSessionsForDay(day)} />
+              <DynamicDayTimeline sessions={getSessionsForDay(day)} />
             </div>
           </div>
         ))}

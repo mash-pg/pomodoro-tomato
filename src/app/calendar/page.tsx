@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { format } from "date-fns";
-import WeeklyCalendar from "@/components/WeeklyCalendar"; // Import WeeklyCalendar
+import dynamic from "next/dynamic";
+
+const DynamicCalendar = dynamic(() => import("react-calendar"), { ssr: false });
+const DynamicWeeklyCalendar = dynamic(() => import("@/components/WeeklyCalendar"), { ssr: false });
 
 interface PomodoroSession {
   id: number;
@@ -52,7 +54,7 @@ export default function CalendarPage() {
 
     fetchUserAndSessions();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
       fetchUserAndSessions(); // Re-fetch when auth state changes
     });
@@ -104,7 +106,7 @@ export default function CalendarPage() {
       <div className="flex flex-col md:flex-row md:space-x-8 w-full max-w-7xl">
         {/* Monthly Calendar */}
         <div className="w-full md:w-2/5 bg-gray-800 p-6 rounded-lg shadow-lg mb-8 md:mb-0">
-          <Calendar
+          <DynamicCalendar
             onChange={(value) => setDate(value instanceof Date ? value : new Date())}
             value={date}
             tileContent={tileContent}
@@ -119,7 +121,9 @@ export default function CalendarPage() {
 
         {/* Weekly Calendar Component */}
         <div className="w-full md:w-3/5 overflow-x-auto">
-          <WeeklyCalendar user={user} sessions={sessions} />
+          {user && (
+            <DynamicWeeklyCalendar user={user} sessions={sessions} />
+          )}
         </div>
       </div>
     </main>

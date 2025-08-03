@@ -52,50 +52,58 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   // Effect to load settings from localStorage on initial client-side render
   useEffect(() => {
-    try {
-      const savedSettingsJSON = localStorage.getItem('pomodoroSettings');
-      if (savedSettingsJSON) {
-        const savedSettings = JSON.parse(savedSettingsJSON);
-        if (savedSettings) {
-          setTheme(savedSettings.theme ?? 'dark');
-          setDarkMode(savedSettings.darkMode ?? true);
-          setWorkDuration(savedSettings.workDuration ?? 25);
-          setShortBreakDuration(savedSettings.shortBreakDuration ?? 5);
-          setLongBreakDuration(savedSettings.longBreakDuration ?? 15);
-          setLongBreakInterval(savedSettings.longBreakInterval ?? 4);
-          setAutoStartWork(savedSettings.autoStartWork ?? false);
-          setAutoStartBreak(savedSettings.autoStartBreak ?? false);
+    if (typeof window !== 'undefined') { // Check if window is defined
+      try {
+        const savedSettingsJSON = localStorage.getItem('pomodoroSettings');
+        if (savedSettingsJSON) {
+          const savedSettings = JSON.parse(savedSettingsJSON);
+          if (savedSettings) {
+            setTheme(savedSettings.theme ?? 'dark');
+            setDarkMode(savedSettings.darkMode ?? true);
+            setWorkDuration(savedSettings.workDuration ?? 25);
+            setShortBreakDuration(savedSettings.shortBreakDuration ?? 5);
+            setLongBreakDuration(savedSettings.longBreakDuration ?? 15);
+            setLongBreakInterval(savedSettings.longBreakInterval ?? 4);
+            setAutoStartWork(savedSettings.autoStartWork ?? false);
+            setAutoStartBreak(savedSettings.autoStartBreak ?? false);
+          }
         }
+      } catch (error) {
+        console.error('Error loading settings from localStorage:', error);
       }
-    } catch (error) {
-      console.error('Error loading settings from localStorage:', error);
     }
   }, []);
 
   // Function to update theme state and apply it to the document
   const setTheme = (newTheme: string) => {
     setThemeState(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    if (typeof window !== 'undefined') { // Check if window is defined
+      document.documentElement.setAttribute('data-theme', newTheme);
+    }
   };
 
   // Function to update dark mode state and apply it to the document
   const setDarkMode = (newDarkMode: boolean) => {
     setDarkModeState(newDarkMode);
-    const root = document.documentElement;
-    if (newDarkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    if (typeof window !== 'undefined') { // Check if window is defined
+      const root = document.documentElement;
+      if (newDarkMode) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
     }
   };
 
   // This effect ensures the theme and dark mode are applied on first load and when they change.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (typeof window !== 'undefined') { // Check if window is defined
+      document.documentElement.setAttribute('data-theme', theme);
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, [theme, darkMode]);
 

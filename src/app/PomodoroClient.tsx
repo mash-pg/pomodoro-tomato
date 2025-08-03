@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import SettingsModal from "@/components/SettingsModal";
+import dynamic from "next/dynamic";
+
+const DynamicSettingsModal = dynamic(() => import("@/components/SettingsModal"), { ssr: false });
 import { useSettings } from "@/context/SettingsContext";
 import { useTimer } from "@/context/TimerContext"; // Import useTimer
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { SettingsModalProps } from "@/components/SettingsModal";
 
 // Define types for clarity
 type TimerMode = 'pomodoro' | 'shortBreak' | 'longBreak';
@@ -40,6 +43,7 @@ interface UserSettings {
   const [autoStartWork, setAutoStartWork] = useState(false);
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [muteNotifications, setMuteNotifications] = useState(false);
+  const [isClient, setIsClient] = useState(false); // Add this state
   
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();
 
@@ -90,7 +94,7 @@ interface UserSettings {
   }, [workDuration, shortBreakDuration, longBreakDuration]);
 
   // --- Settings Modal Controls ---
-  const handleSaveSettings = useCallback(async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
+  const handleSaveSettings = useCallback(async (settings: SettingsModalProps['initialSettings']) => {
     setWorkDuration(settings.workDuration);
     setShortBreakDuration(settings.shortBreakDuration);
     setLongBreakDuration(settings.longBreakDuration);
@@ -149,6 +153,7 @@ interface UserSettings {
 
   // --- Load Initial Settings from LocalStorage ---
   useEffect(() => {
+    setIsClient(true); // Set isClient to true when component mounts on client side
     try {
       const savedSettingsJSON = localStorage.getItem('pomodoroSettings');
       if (savedSettingsJSON) {
@@ -224,7 +229,7 @@ interface UserSettings {
 
     fetchUserAndData();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
       fetchUserAndData(); // Re-fetch when auth state changes
     });
@@ -335,7 +340,7 @@ interface UserSettings {
 
     // Update the ref with the current completionCount for the next render
     prevCompletionCountRef.current = completionCount;
-  }, [completionCount, lastCompletedMode || '', muteNotifications]);
+  }, [completionCount, lastCompletedMode, muteNotifications]);
 
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
@@ -430,9 +435,13 @@ interface UserSettings {
         )}
 
         {/* Audio Elements */}
-        <audio ref={pomodoroEndAudioRef} src="/sounds/pomodoro_end.mp3" preload="auto" />
-        <audio ref={shortBreakEndAudioRef} src="/sounds/short_break_end.mp3" preload="auto" />
-        <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
+        {isClient && (
+          <>
+            <audio ref={pomodoroEndAudioRef} src="/sounds/pomodoro_end.mp3" preload="auto" />
+            <audio ref={shortBreakEndAudioRef} src="/sounds/short_break_end.mp3" preload="auto" />
+            <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
+          </>
+        )}
 
       </div>
     </main>

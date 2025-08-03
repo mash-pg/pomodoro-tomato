@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PomodoroSettings } from '@/context/SettingsContext'; // Import the shared type
 
-interface SettingsModalProps {
+export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialSettings: PomodoroSettings;

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { User } from "@supabase/supabase-js";
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay } from "date-fns";
-import { ja } from "date-fns/locale"; // 日本語ロケールをインポート
+import { ja } from "date-fns/locale/ja"; // 日本語ロケールを直接パスから名前付きインポート
 
 interface PomodoroSession {
   id: number;

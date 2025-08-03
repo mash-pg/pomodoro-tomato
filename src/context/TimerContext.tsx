@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useSettings } from './SettingsContext';
 
 type TimerMode = 'pomodoro' | 'shortBreak' | 'longBreak';
@@ -49,44 +49,48 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
   // Restore state from localStorage on initial mount
   useEffect(() => {
-    try {
-      const savedStateJSON = localStorage.getItem('pomodoroTimerState');
-      if (savedStateJSON) {
-        const savedState = JSON.parse(savedStateJSON);
-        if (savedState) {
-          setMode(savedState.mode ?? 'pomodoro');
-          setIsActive(savedState.isActive ?? false);
-          setIsPaused(savedState.isPaused ?? false);
-          setPomodoroCount(savedState.pomodoroCount ?? 0);
+    if (typeof window !== 'undefined') { // Check if window is defined
+      try {
+        const savedStateJSON = localStorage.getItem('pomodoroTimerState');
+        if (savedStateJSON) {
+          const savedState = JSON.parse(savedStateJSON);
+          if (savedState) {
+            setMode(savedState.mode ?? 'pomodoro');
+            setIsActive(savedState.isActive ?? false);
+            setIsPaused(savedState.isPaused ?? false);
+            setPomodoroCount(savedState.pomodoroCount ?? 0);
 
-          // Only restore the exact time if the timer was running or paused.
-          // Otherwise, the other useEffect will set the correct duration from settings.
-          if (savedState.isActive || savedState.isPaused) {
-            setMinutes(savedState.minutes);
-            setSeconds(savedState.seconds);
+            // Only restore the exact time if the timer was running or paused.
+            // Otherwise, the other useEffect will set the correct duration from settings.
+            if (savedState.isActive || savedState.isPaused) {
+              setMinutes(savedState.minutes);
+              setSeconds(savedState.seconds);
+            }
           }
         }
+      } catch (error) {
+        console.error("Failed to load timer state from localStorage", error);
       }
-    } catch (error) {
-      console.error("Failed to load timer state from localStorage", error);
     }
     setIsInitialLoad(false); // Mark initial load as complete
   }, []); // This effect runs only once on mount
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    try {
-      const stateToSave = {
-        mode,
-        minutes,
-        seconds,
-        isActive,
-        isPaused,
-        pomodoroCount,
-      };
-      localStorage.setItem('pomodoroTimerState', JSON.stringify(stateToSave));
-    } catch (error) {
-      console.error("Failed to save timer state to localStorage", error);
+    if (typeof window !== 'undefined') { // Check if window is defined
+      try {
+        const stateToSave = {
+          mode,
+          minutes,
+          seconds,
+          isActive,
+          isPaused,
+          pomodoroCount,
+        };
+        localStorage.setItem('pomodoroTimerState', JSON.stringify(stateToSave));
+      } catch (error) {
+        console.error("Failed to save timer state to localStorage", error);
+      }
     }
   }, [mode, minutes, seconds, isActive, isPaused, pomodoroCount]);
 
@@ -98,7 +102,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }
     fetchUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
     });
 

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
-import WeeklyTimeCalendar from "@/components/WeeklyTimeCalendar";
+import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
+import dynamic from "next/dynamic";
+
+const DynamicWeeklyTimeCalendar = dynamic(() => import("@/components/WeeklyTimeCalendar"), { ssr: false });
 
 interface PomodoroSession {
   id: number;
@@ -48,7 +50,7 @@ export default function WeeklyTimeCalendarPage() {
 
     fetchUserAndSessions();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
       fetchUserAndSessions(); // Re-fetch when auth state changes
     });
@@ -74,7 +76,9 @@ export default function WeeklyTimeCalendarPage() {
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-gray-900 text-white">
       <h1 className="text-4xl font-bold mb-8">週ごとのポモドーロ (時間)</h1>
       <div className="w-full max-w-7xl">
-        <WeeklyTimeCalendar user={user} sessions={sessions} />
+        {user && (
+          <DynamicWeeklyTimeCalendar user={user} sessions={sessions} />
+        )}
       </div>
     </main>
   );

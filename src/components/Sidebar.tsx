@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { supabase } from "@/lib/supabaseClient";
+import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useSettings } from '@/context/SettingsContext'; // Import useSettings
 
 interface SidebarProps {
@@ -26,7 +26,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
       setLoading(false);
     });

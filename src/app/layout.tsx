@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { TimerProvider } from "@/context/TimerContext";
-import GlobalSettingsModalWrapper from "@/components/GlobalSettingsModalWrapper";
+import ClientGlobalSettingsModalWrapper from "@/components/ClientGlobalSettingsModalWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +31,7 @@ export default function RootLayout({
             <div className="pt-16"> {/* Add padding-top to prevent content from being hidden behind the fixed Navbar */}
               {children}
             </div>
-            <GlobalSettingsModalWrapper />
+            <ClientGlobalSettingsModalWrapper />
           </TimerProvider>
         </SettingsProvider>
       </body>

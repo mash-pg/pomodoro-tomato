@@ -29,7 +29,6 @@ const DayTimeline: React.FC<DayTimelineProps> = ({ sessions }) => {
                 key={`h-${index}`}
                 className="absolute h-full bg-blue-500 rounded opacity-75"
                 style={{ left: `${leftPercentage}%`, width: `${widthPercentage}%` }}
-                title={`Session at ${sessionDate.toLocaleTimeString()}`}
               ></div>
             );
           })}
@@ -63,7 +62,6 @@ const DayTimeline: React.FC<DayTimelineProps> = ({ sessions }) => {
                 key={`v-${index}`}
                 className="absolute w-full bg-blue-500 rounded opacity-75"
                 style={{ top: `${topPercentage}%`, height: `${heightPercentage}%` }}
-                title={`Session at ${sessionDate.toLocaleTimeString()}`}
               ></div>
             );
           })}
