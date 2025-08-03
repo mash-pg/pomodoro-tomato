@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import SettingsModal from "@/components/SettingsModal";
 import { useSettings } from "@/context/SettingsContext";
+import { useTimer } from "@/context/TimerContext"; // Import useTimer
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 
@@ -41,13 +42,19 @@ export default function PomodoroClient() {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();
 
-  // --- Timer State ---
-  const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro');
-  const [minutes, setMinutes] = useState(workDuration);
-  const [seconds, setSeconds] = useState(0);
-  const [isActive, setIsActive] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [pomodoroCount, setPomodoroCount] = useState(0); // Completed pomodoro sessions (current session)
+  // --- Timer State (from Context) ---
+  const {
+    mode: currentMode,
+    minutes,
+    seconds,
+    isActive,
+    isPaused,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    setMode: setCurrentMode,
+  } = useTimer();
+
 
   // --- User and Session Data ---
   const [user, setUser] = useState<User | null>(null);
@@ -78,14 +85,6 @@ export default function PomodoroClient() {
         return workDuration; // Fallback
     }
   }, [workDuration, shortBreakDuration, longBreakDuration]);
-
-  // --- Effect to update timer display when mode or settings change ---
-  useEffect(() => {
-    if (!isActive) {
-      setMinutes(getDuration(currentMode));
-      setSeconds(0);
-    }
-  }, [currentMode, isActive, getDuration]);
 
   // --- Settings Modal Controls ---
   const handleSaveSettings = useCallback(async (settings: Parameters<typeof SettingsModal>[0]['initialSettings']) => {
@@ -290,152 +289,13 @@ export default function PomodoroClient() {
 
   }, [allSessions]);
 
-  // --- Persist and Restore Timer State from LocalStorage ---
-  useEffect(() => {
-    // On component mount, try to load state from localStorage
-    try {
-      const savedStateJSON = localStorage.getItem('pomodoroState');
-      if (savedStateJSON) {
-        const savedState = JSON.parse(savedStateJSON);
-        if (savedState) {
-          // Restore timer state
-          setCurrentMode(savedState.currentMode ?? 'pomodoro');
-          
-          // Only restore minutes/seconds if the timer was running or paused.
-          // Otherwise, let the main effect set the duration from settings.
-          if (savedState.isActive || savedState.isPaused) {
-            setMinutes(savedState.minutes ?? workDuration);
-            setSeconds(savedState.seconds ?? 0);
-          }
-          
-          setIsActive(savedState.isActive ?? false);
-          setIsPaused(savedState.isPaused ?? false);
-          setPomodoroCount(savedState.pomodoroCount ?? 0);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load state from localStorage", error);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  
 
-  useEffect(() => {
-    // Whenever timer state changes, save it to localStorage
-    try {
-      const stateToSave = {
-        currentMode,
-        minutes,
-        seconds,
-        isActive,
-        isPaused,
-        pomodoroCount,
-      };
-      localStorage.setItem('pomodoroState', JSON.stringify(stateToSave));
-    } catch (error) {
-      console.error("Failed to save state to localStorage", error);
-    }
-  }, [currentMode, minutes, seconds, isActive, isPaused, pomodoroCount]);
+  
 
-
-  // --- Core Timer Logic ---''
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isActive && !isPaused) {
-      interval = setInterval(() => {
-        if (seconds > 0) {
-          setSeconds((s) => s - 1);
-        } else if (minutes > 0) {
-          setMinutes((m) => m - 1);
-          setSeconds(59);
-        } else {
-          // Session finished
-          clearInterval(interval!); // Clear current interval
-          setIsActive(false); // Stop timer
-
-          if (!muteNotifications) {
-            if (currentMode === 'pomodoro') {
-              pomodoroEndAudioRef.current?.play();
-            } else if (currentMode === 'shortBreak') {
-              shortBreakEndAudioRef.current?.play();
-            } else if (currentMode === 'longBreak') {
-              longBreakEndAudioRef.current?.play();
-            }
-          }
-
-          if (currentMode === 'pomodoro') {
-            // Save session to Supabase
-            if (user) {
-              const saveSession = async () => {
-                const { error } = await supabase
-                  .from('pomodoro_sessions')
-                  .insert({
-                    user_id: user.id,
-                    duration_minutes: workDuration,
-                  });
-                if (error) {
-                  console.error('Error saving session:', JSON.stringify(error, null, 2));
-                } else {
-                  // Re-fetch sessions to update stats
-                  const { data, error: fetchError } = await supabase
-                    .from('pomodoro_sessions')
-                    .select('created_at, duration_minutes')
-                    .eq('user_id', user.id);
-                  if (fetchError) {
-                    console.error('Error re-fetching sessions:', JSON.stringify(fetchError, null, 2));
-                  } else {
-                    setAllSessions(data as PomodoroSession[]);
-                  }
-                }
-              };
-              saveSession();
-            }
-
-            setPomodoroCount((prevCount) => prevCount + 1);
-            // Determine next break type
-            const nextMode: TimerMode = (pomodoroCount + 1) % longBreakInterval === 0
-              ? 'longBreak'
-              : 'shortBreak';
-            setCurrentMode(nextMode);
-            if (autoStartBreak) {
-              setIsActive(true);
-            }
-          } else { // It was a break (short or long)
-            setCurrentMode('pomodoro');
-            if (autoStartWork) {
-              setIsActive(true);
-            }
-          }
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isActive, isPaused, seconds, minutes, currentMode, pomodoroCount, longBreakInterval, autoStartWork, autoStartBreak, user, workDuration, muteNotifications]);
-
-  // --- Timer Controls ---
-  const toggleTimer = () => {
-    setIsActive(true);
-    setIsPaused(false);
-  };
-
-  const pauseTimer = () => {
-    setIsPaused(true);
-  };
-
-  const resetTimer = () => {
-    setIsActive(false);
-    setIsPaused(false);
-    setMinutes(getDuration(currentMode));
-    setSeconds(0);
-  };
+  
 
   const handleModeChange = (mode: TimerMode) => {
-    setIsActive(false);
     setCurrentMode(mode);
   };
 
@@ -475,7 +335,7 @@ export default function PomodoroClient() {
         <div className="flex gap-4 justify-center">
           {!isActive && (
             <button
-              onClick={toggleTimer}
+              onClick={startTimer}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
                 bg-blue-500 hover:bg-blue-600
                 text-white shadow-lg`}
@@ -497,7 +357,7 @@ export default function PomodoroClient() {
 
           {isActive && isPaused && (
             <button
-              onClick={toggleTimer}
+              onClick={startTimer}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
                 bg-green-500 hover:bg-green-600
                 text-white shadow-lg`}

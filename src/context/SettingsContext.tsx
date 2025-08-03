@@ -28,6 +28,12 @@ interface SettingsContextType {
   setTheme: (theme: string) => void;
   darkMode: boolean;
   setDarkMode: (darkMode: boolean) => void;
+  workDuration: number;
+  shortBreakDuration: number;
+  longBreakDuration: number;
+  longBreakInterval: number;
+  autoStartWork: boolean;
+  autoStartBreak: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -37,6 +43,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const settingsRef = useRef<SettingsRefContent | null>(null);
   const [theme, setThemeState] = useState('dark');
   const [darkMode, setDarkModeState] = useState(true);
+  const [workDuration, setWorkDuration] = useState(25);
+  const [shortBreakDuration, setShortBreakDuration] = useState(5);
+  const [longBreakDuration, setLongBreakDuration] = useState(15);
+  const [longBreakInterval, setLongBreakInterval] = useState(4);
+  const [autoStartWork, setAutoStartWork] = useState(false);
+  const [autoStartBreak, setAutoStartBreak] = useState(false);
 
   // Effect to load settings from localStorage on initial client-side render
   useEffect(() => {
@@ -47,6 +59,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (savedSettings) {
           setTheme(savedSettings.theme ?? 'dark');
           setDarkMode(savedSettings.darkMode ?? true);
+          setWorkDuration(savedSettings.workDuration ?? 25);
+          setShortBreakDuration(savedSettings.shortBreakDuration ?? 5);
+          setLongBreakDuration(savedSettings.longBreakDuration ?? 15);
+          setLongBreakInterval(savedSettings.longBreakInterval ?? 4);
+          setAutoStartWork(savedSettings.autoStartWork ?? false);
+          setAutoStartBreak(savedSettings.autoStartBreak ?? false);
         }
       }
     } catch (error) {
@@ -90,6 +108,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTheme,
       darkMode,
       setDarkMode,
+      workDuration,
+      shortBreakDuration,
+      longBreakDuration,
+      longBreakInterval,
+      autoStartWork,
+      autoStartBreak,
     }}>
       {children}
     </SettingsContext.Provider>

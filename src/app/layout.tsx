@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { TimerProvider } from "@/context/TimerContext";
 import GlobalSettingsModalWrapper from "@/components/GlobalSettingsModalWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,11 +26,13 @@ export default function RootLayout({
     <html lang="ja">
       <body className={inter.className}>
         <SettingsProvider>
-          <Navbar />
-          <div className="pt-16"> {/* Add padding-top to prevent content from being hidden behind the fixed Navbar */}
-            {children}
-          </div>
-          <GlobalSettingsModalWrapper />
+          <TimerProvider>
+            <Navbar />
+            <div className="pt-16"> {/* Add padding-top to prevent content from being hidden behind the fixed Navbar */}
+              {children}
+            </div>
+            <GlobalSettingsModalWrapper />
+          </TimerProvider>
         </SettingsProvider>
       </body>
     </html>
