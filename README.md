@@ -90,6 +90,23 @@
 +---------------------------------+
 ```
 
+## 🔐 ユーザー認証フロー
+
+本アプリケーションはSupabase Authを利用して、安全なユーザー認証を実現しています。
+
+### 新規登録
+1.  ユーザーは`/signup`ページでメールアドレスとパスワードを入力します。
+2.  `AuthForm`コンポーネントが入力値を受け取り、Supabaseの`signUp`メソッドを呼び出します。
+3.  登録が成功すると、Supabaseは確認メールをユーザーに送信します。
+4.  同時に、`handle_new_user`トリガーが実行され、`user_settings`と`user_goals`テーブルに新しいユーザー用のデフォルトデータが作成されます。
+
+### ログイン
+1.  ユーザーは`/login`ページでメールアドレスとパスワードを入力します。
+2.  `AuthForm`コンポーネントがSupabaseの`signInWithPassword`メソッドを呼び出します。
+3.  認証が成功すると、セッションが作成され、ユーザーはアプリケーションのメイン機能にアクセスできるようになります。
+
+**注意:** Supabaseのデフォルト設定では、新規登録後にメール認証が必要です。テスト環境では、Supabaseダッシュボードの **Authentication** > **Settings** で **Disable email confirmations** を有効にすることで、このステップを省略できます。
+
 ## 🛠️ 技術スタック
 
 *   **フレームワーク**: [Next.js](https://nextjs.org/)
@@ -99,6 +116,7 @@
 *   **チャート**: [Recharts](https://recharts.org/)
 *   **データベース**: [Supabase](https://supabase.io/)
 *   **テスト**: [Jest](https://jestjs.io/), [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+*   **PWA**: [next-pwa](https://www.npmjs.com/package/next-pwa)
 *   **デプロイ**: [Vercel](https://vercel.com/)
 
 ## 🚀 Getting Started
@@ -119,9 +137,8 @@ yarn dev
 
 1.  [Supabase](https://supabase.com/)にサインアップし、新しいプロジェクトを作成します。
 2.  プロジェクトのダッシュボードで、**SQL Editor**に移動します。
-3.  `sql/schema.sql`の内容をコピーして実行し、テーブル、ポリシー、トリガーを作成します。
-4.  同様に`sql/user_goals.sql`を実行して、初期データを挿入します（任意）。
-5.  **Settings** > **API** に移動し、`Project URL`と`anon` `public`キーを控えておきます。これらは後で環境変数として使用します。
+3.  `sql/schema.sql`と`sql/user_goals.sql`を実行してデータベースをセットアップします。
+4.  **Settings** > **API** に移動し、`Project URL`と`anon` `public`キーを控えておきます。
 
 ### 2. ローカルでの実行
 
@@ -130,50 +147,42 @@ yarn dev
 *   [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
 
 #### インストール
-1.  **リポジトリをクローンする**
-    ```bash
-    git clone https://github.com/your-username/gemini-cli-tomato.git
-    cd gemini-cli-tomato
-    ```
-2.  **依存関係をインストールする**
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-3.  **環境変数を設定する**
-    プロジェクトのルートに`.env.local`ファイルを作成し、Supabaseの認証情報を追加します。
+1.  **リポジトリをクローンする**: `git clone https://github.com/your-username/gemini-cli-tomato.git`
+2.  **依存関係をインストールする**: `npm install` or `yarn install`
+3.  **環境変数を設定する**: `.env.local`ファイルを作成し、Supabaseのキーを設定します。
     ```
     NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
     ```
-4.  **開発サーバーを起動する**
-    ```bash
-    npm run dev
-    # or
-    yarn dev
-    ```
-    ブラウザで[http://localhost:3000](http://localhost:3000)を開いて結果を確認します。
+4.  **開発サーバーを起動する**: `npm run dev` or `yarn dev`
 
 ### 3. Vercel へのデプロイ
 
 1.  リポジトリをGitHubにプッシュします。
-2.  [Vercel](https://vercel.com/)にサインアップし、GitHubアカウントを連携します。
-3.  **New Project**から、デプロイしたいリポジトリを選択します。
-4.  **Environment Variables**セクションで、以下の環境変数を設定します。
-    *   `NEXT_PUBLIC_SUPABASE_URL`
-    *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5.  **Deploy**をクリックすると、ビルドとデプロイが自動的に開始されます。
+2.  [Vercel](https://vercel.com/)でプロジェクトを作成し、リポジトリを連携します。
+3.  環境変数にSupabaseのキーを設定してデプロイします。
 
-### 利用可能なスクリプト
+## 📱 PWA (Progressive Web App)
 
-| npm or yarn | 説明 |
-| :--- | :--- |
-| `dev` | 開発モードでアプリケーションを起動します。 |
-| `build` | 本番用にアプリケーションをビルドします。 |
-| `start` | ビルドされた本番サーバーを起動します。 |
-| `lint` | ESLintでコードの静的解析を実行します。 |
-| `test` | Jestでテストを実行します。 |
+このアプリケーションはPWAに対応しており、オフラインでの利用や、スマートフォンやPCのホーム画面にインストールしてネイティブアプリのように使用することができます。
+
+本番環境でサイトにアクセスすると、ブラウザのアドレスバーにインストールアイコンが表示されます。
+
+## 🧪 テスト
+
+JestとReact Testing Libraryを使用した単体テストとコンポーネントテストが含まれています。
+
+*   **テストの実行**: `npm test` or `yarn test`
+*   **テストファイル**: テストは`tests/`ディレクトリ内にコンポーネントごとに配置されています。
+
+## 🎨 スタイルのカスタマイズ
+
+スタイリングにはTailwind CSSを使用しています。`tailwind.config.mjs`ファイルを編集することで、カラーパレット、フォント、ブレークポイントなどのデザインシステムをカスタマイズできます。
+
+## 🤔 トラブルシューティング
+
+*   **Supabaseへの接続エラー**: `.env.local`ファイルのURLとキーが正しいか確認してください。また、Supabaseプロジェクトのステータスが正常であるか確認してください。
+*   **ビルドエラー**: 依存関係が正しくインストールされているか確認してください。`node_modules`と`.next`ディレクトリを削除し、`npm install`を再実行すると解決する場合があります。
 
 ## 📂 ディレクトリ構成
 
@@ -183,7 +192,6 @@ yarn dev
 ├── src/                # ソースコード
 │   ├── app/            # Next.js App Router
 │   ├── components/     # 再利用可能なReactコンポーネント
-│   ├── context/        # Reactコンテキストプロバイダー
 │   └── lib/            # ヘルパー関数とライブラリ
 └── ...
 ```
