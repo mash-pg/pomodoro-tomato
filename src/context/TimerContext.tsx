@@ -14,6 +14,8 @@ interface TimerContextProps {
   isActive: boolean;
   isPaused: boolean;
   pomodoroCount: number;
+  lastCompletedMode: TimerMode | null; // To track which timer finished
+  completionCount: number; // To trigger sound effect
   startTimer: () => void;
   pauseTimer: () => void;
   resetTimer: () => void;
@@ -41,6 +43,9 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const [pomodoroCount, setPomodoroCount] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [lastCompletedMode, setLastCompletedMode] = useState<TimerMode | null>(null);
+  const [completionCount, setCompletionCount] = useState(0);
+
 
   // Restore state from localStorage on initial mount
   useEffect(() => {
@@ -114,6 +119,9 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
           setMinutes((m) => m - 1);
           setSeconds(59);
         } else {
+          // --- Timer Completion ---
+          setLastCompletedMode(mode); // Record which mode just finished
+          setCompletionCount(c => c + 1); // Trigger the completion event
           setIsActive(false);
 
           if (mode === 'pomodoro') {
@@ -184,6 +192,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     isActive,
     isPaused,
     pomodoroCount,
+    lastCompletedMode,
+    completionCount,
     startTimer,
     pauseTimer,
     resetTimer,

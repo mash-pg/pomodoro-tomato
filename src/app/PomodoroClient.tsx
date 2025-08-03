@@ -31,7 +31,7 @@ interface UserSettings {
   dark_mode: boolean; // Added for Supabase settings
 }
 
-export default function PomodoroClient() {
+  export default function PomodoroClient() {
   // --- Timer Settings ---
   const [workDuration, setWorkDuration] = useState(25); // minutes
   const [shortBreakDuration, setShortBreakDuration] = useState(5); // minutes
@@ -40,6 +40,7 @@ export default function PomodoroClient() {
   const [autoStartWork, setAutoStartWork] = useState(false);
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [muteNotifications, setMuteNotifications] = useState(false);
+  
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();
 
   // --- Timer State (from Context) ---
@@ -49,6 +50,8 @@ export default function PomodoroClient() {
     seconds,
     isActive,
     isPaused,
+    lastCompletedMode, // Get the last completed mode
+    completionCount, // Get the completion counter
     startTimer,
     pauseTimer,
     resetTimer,
@@ -289,11 +292,50 @@ export default function PomodoroClient() {
 
   }, [allSessions]);
 
-  
+  // --- Play sound on timer completion ---
+  const prevCompletionCountRef = useRef(completionCount); // completionCountで初期化
 
-  
+  useEffect(() => {
+    console.log("Sound useEffect triggered. completionCount:", completionCount, "prevCompletionCountRef.current:", prevCompletionCountRef.current);
 
-  
+    // Only play sound if completionCount has increased
+    if (completionCount > prevCompletionCountRef.current) {
+      console.log("completionCount > prevCompletionCountRef.current. Playing sound.");
+      if (!muteNotifications) {
+        let audioPlayer: HTMLAudioElement | null = null;
+
+        switch (lastCompletedMode) {
+          case 'pomodoro':
+            audioPlayer = pomodoroEndAudioRef.current;
+            console.log("Playing pomodoro_end.mp3");
+            break;
+          case 'shortBreak':
+            audioPlayer = shortBreakEndAudioRef.current;
+            console.log("Playing short_break_end.mp3");
+            break;
+          case 'longBreak':
+            audioPlayer = longBreakEndAudioRef.current;
+            console.log("Playing long_break_end.mp3");
+            break;
+          default:
+            console.log("No specific mode completed, or lastCompletedMode is null.");
+            break;
+        }
+
+        if (audioPlayer) {
+          console.log("Attempting to play audio.", audioPlayer);
+          audioPlayer.play().catch(error => console.error("Audio play failed:", error));
+        } else {
+          console.log("Audio player is null.");
+        }
+      } else {
+        console.log("Sound not played due to muteNotifications.");
+      }
+    }
+
+    // Update the ref with the current completionCount for the next render
+    prevCompletionCountRef.current = completionCount;
+  }, [completionCount, lastCompletedMode || '', muteNotifications]);
 
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
@@ -335,11 +377,12 @@ export default function PomodoroClient() {
         <div className="flex gap-4 justify-center">
           {!isActive && (
             <button
-              onClick={startTimer}
+              onClick={() => {
+                startTimer();
+              }}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
                 bg-blue-500 hover:bg-blue-600
-                text-white shadow-lg`}
-            >
+                text-white shadow-lg`}>
               開始
             </button>
           )}
