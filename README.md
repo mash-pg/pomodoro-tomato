@@ -10,7 +10,6 @@
 
 このアプリケーションの中核機能です。作業セッション、短い休憩、長い休憩の時間をカスタマイズできます。
 
-<!-- ![Pomodoro Timer Screenshot](https://via.placeholder.com/400x250.png?text=Pomodoro+Timer) -->
 ```
 +---------------------------------+
 |            ポモドーロ             |
@@ -27,7 +26,6 @@
 
 詳細な統計で進捗を追跡します。日次、週次、月次の目標を設定し、活動パターンをグラフで確認できます。
 
-<!-- ![Statistics Page Screenshot](https://via.placeholder.com/400x250.png?text=Statistics+Page) -->
 ```
 +---------------------------------+
 |           あなたの統計            |
@@ -45,7 +43,6 @@
 
 月間カレンダーで過去の活動を振り返ることができます。各日に完了したポモドーロの数が表示されます。
 
-<!-- ![Calendar View Screenshot](https://via.placeholder.com/400x250.png?text=Calendar+View) -->
 ```
 +---------------------------------+
 |        ポモドーロカレンダー         |
@@ -63,13 +60,35 @@
 
 ポモドーロセッションを時間単位で可視化する、レスポンシブ対応の週間カレンダーです。画面サイズに応じてレイアウトが変化します。
 
-<!-- ![Weekly Time Calendar Screenshot](https://via.placeholder.com/400x250.png?text=Weekly+Time+Calendar) -->
+**PC表示:**
+```
++----------------------------------------------------------------------------------------------------+
+|                                       週ごとのポモドーロ (時間)                                      |
++----------------------------------------------------------------------------------------------------+
+| < 前の週                      YYYY年MM月DD日 - YYYY年MM月DD日                       次の週 >     |
++----------------------------------------------------------------------------------------------------+
+|      日          月          火          水          木          金          土             |
+|    MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD        MM/DD           |
+|     8.5h         7.0h         9.2h         6.5h         8.0h         5.5h         10.0h          |
++----------------------------------------------------------------------------------------------------+
+```
 
 ### 5. ユーザー認証と設定
 
 サインアップとログインで、複数のデバイス間でデータを同期できます。タイマーの時間、自動開始の有無、テーマ（ダーク/ライト）などをカスタマイズ可能です。
 
-<!-- ![Settings Screenshot](https://via.placeholder.com/400x250.png?text=Settings) -->
+```
++---------------------------------+
+|              設定               |
+|                                 |
+| 作業時間:          [ 25 ] 分    |
+| 短い休憩:          [ 5  ] 分    |
+| 長い休憩:          [ 15 ] 分    |
+|                                 |
+| 休憩を自動で開始:    [ オン/オフ ]   |
+| テーマ:              [ ダーク/ライト ] |
++---------------------------------+
+```
 
 ## 🛠️ 技術スタック
 
@@ -81,6 +100,18 @@
 *   **データベース**: [Supabase](https://supabase.io/)
 *   **テスト**: [Jest](https://jestjs.io/), [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
 *   **デプロイ**: [Vercel](https://vercel.com/)
+
+## 🚀 Getting Started
+
+まず、開発サーバーを起動します:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+ブラウザで[http://localhost:3000](http://localhost:3000)を開いて結果を確認します。
 
 ## 📦 セットアップとデプロイ
 
@@ -94,6 +125,11 @@
 
 ### 2. ローカルでの実行
 
+#### 前提条件
+*   [Node.js](https://nodejs.org/) (v18.x or later)
+*   [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
+
+#### インストール
 1.  **リポジトリをクローンする**
     ```bash
     git clone https://github.com/your-username/gemini-cli-tomato.git
@@ -102,6 +138,8 @@
 2.  **依存関係をインストールする**
     ```bash
     npm install
+    # or
+    yarn install
     ```
 3.  **環境変数を設定する**
     プロジェクトのルートに`.env.local`ファイルを作成し、Supabaseの認証情報を追加します。
@@ -112,6 +150,8 @@
 4.  **開発サーバーを起動する**
     ```bash
     npm run dev
+    # or
+    yarn dev
     ```
     ブラウザで[http://localhost:3000](http://localhost:3000)を開いて結果を確認します。
 
@@ -124,6 +164,29 @@
     *   `NEXT_PUBLIC_SUPABASE_URL`
     *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 5.  **Deploy**をクリックすると、ビルドとデプロイが自動的に開始されます。
+
+### 利用可能なスクリプト
+
+| npm or yarn | 説明 |
+| :--- | :--- |
+| `dev` | 開発モードでアプリケーションを起動します。 |
+| `build` | 本番用にアプリケーションをビルドします。 |
+| `start` | ビルドされた本番サーバーを起動します。 |
+| `lint` | ESLintでコードの静的解析を実行します。 |
+| `test` | Jestでテストを実行します。 |
+
+## 📂 ディレクトリ構成
+
+```
+.
+├── sql/                # データベーススキーマと初期データ
+├── src/                # ソースコード
+│   ├── app/            # Next.js App Router
+│   ├── components/     # 再利用可能なReactコンポーネント
+│   ├── context/        # Reactコンテキストプロバイダー
+│   └── lib/            # ヘルパー関数とライブラリ
+└── ...
+```
 
 ## 🗄️ データベースとログ
 
