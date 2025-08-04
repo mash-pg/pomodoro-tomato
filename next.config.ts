@@ -4,7 +4,10 @@ import withPWA from "next-pwa";
 const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push('web-push');
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        buffer: require.resolve('buffer/'),
+      };
     }
     return config;
   },
