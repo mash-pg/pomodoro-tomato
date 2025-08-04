@@ -4,9 +4,15 @@ import admin from 'firebase-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
+    });
+    console.log("Firebase Admin SDK initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing Firebase Admin SDK:", error);
+    // Optionally, re-throw the error or handle it appropriately
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
