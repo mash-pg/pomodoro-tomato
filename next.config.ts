@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('web-push');
+    }
+    return config;
+  },
 };
 
 const pwaConfig = withPWA({
