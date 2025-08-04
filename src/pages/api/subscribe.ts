@@ -1,10 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabaseClient';
 import webpush from 'web-push';
-
-// Ensure web-push uses Node.js's Buffer
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(webpush as any).Buffer = Buffer;
+import { Buffer } from 'buffer';
 
 webpush.setVapidDetails(
   'mailto:your-email@example.com',
