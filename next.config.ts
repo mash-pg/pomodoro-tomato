@@ -15,6 +15,7 @@ const pwaConfig = withPWA({
     /app-path-routes-manifest\.json$/,
     /app-route-manifest\.json$/,
     /build-manifest\.json$/,
+    /dynamic-css-manifest\.json$/,
     /react-loadable-manifest\.json$/,
     /routes-manifest\.json$/,
     /server-build-manifest\.json$/,
