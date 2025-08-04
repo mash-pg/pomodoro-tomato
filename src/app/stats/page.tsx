@@ -18,9 +18,9 @@ interface Stats {
 }
 
 interface Goals {
-  daily_pomodoros: number;
-  weekly_pomodoros: number;
-  monthly_pomodoros: number;
+  daily_pomodoros: number | '';
+  weekly_pomodoros: number | '';
+  monthly_pomodoros: number | '';
 }
 
 export default function StatsPage() {
@@ -37,8 +37,8 @@ export default function StatsPage() {
   const [dailyActivityData, setDailyActivityData] = useState<{ hour: number; count: number }[]>([]);
   const [weeklyActivityData, setWeeklyActivityData] = useState<{ day: number; count: number }[]>([]);
 
-  const [manualPomodoros, setManualPomodoros] = useState(1);
-  const [manualDuration, setManualDuration] = useState(25);
+  const [manualPomodoros, setManualPomodoros] = useState<number | ''>(1);
+  const [manualDuration, setManualDuration] = useState<number | ''>(25);
   const [manualDate, setManualDate] = useState('');
   const [manualTime, setManualTime] = useState('');
   const [addLoading, setAddLoading] = useState(false);
@@ -175,7 +175,12 @@ export default function StatsPage() {
   const handleSaveGoals = async () => {
     if (!user) return alert('目標を保存するにはログインしてください。');
     setLoading(true);
-    const { error } = await supabase.from('user_goals').upsert({ ...goals, user_id: user.id });
+    const { error } = await supabase.from('user_goals').upsert({ 
+      user_id: user.id,
+      daily_pomodoros: Number(goals.daily_pomodoros) || 0,
+      weekly_pomodoros: Number(goals.weekly_pomodoros) || 0,
+      monthly_pomodoros: Number(goals.monthly_pomodoros) || 0,
+    });
     if (error) setError('目標の保存に失敗しました。');
     else alert('目標を保存しました。');
     setLoading(false);
@@ -183,7 +188,14 @@ export default function StatsPage() {
 
   const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setGoals(prev => ({ ...prev, [name]: Number(value) >= 0 ? Number(value) : 0 }));
+    if (value === '') {
+      setGoals(prev => ({ ...prev, [name]: '' }));
+      return;
+    }
+    const intValue = parseInt(value, 10);
+    if (!isNaN(intValue) && intValue >= 0) {
+      setGoals(prev => ({ ...prev, [name]: intValue }));
+    }
   };
 
   const clearSessions = async (period: 'day' | 'week' | 'month') => {
@@ -268,16 +280,16 @@ export default function StatsPage() {
 
   const handleAddManualSession = async () => {
     if (!user) return alert('セッションを追加するにはログインしてください。');
-    if (manualPomodoros <= 0 || manualDuration <= 0) return alert('ポモドーロ数と時間は正の数を入力してください。');
+    if (manualPomodoros === '' || manualDuration === '' || manualPomodoros <= 0 || manualDuration <= 0) return alert('ポモドーロ数と時間は正の数を入力してください。');
 
     setAddLoading(true);
     const [year, month, day] = manualDate.split('-').map(Number);
     const [hours, minutes] = manualTime.split(':').map(Number);
     const sessionDateTime = new Date(year, month - 1, day, hours, minutes, 0);
 
-    const sessionsToInsert = Array.from({ length: manualPomodoros }, () => ({
+    const sessionsToInsert = Array.from({ length: Number(manualPomodoros) }, () => ({
       user_id: user.id,
-      duration_minutes: manualDuration,
+      duration_minutes: Number(manualDuration),
       created_at: sessionDateTime.toISOString(),
     }));
 
@@ -375,11 +387,31 @@ export default function StatsPage() {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label htmlFor="manual-pomodoros" className="block text-sm font-medium text-gray-400">ポモドーロ数</label>
-                    <input type="number" id="manual-pomodoros" value={manualPomodoros} onChange={(e) => setManualPomodoros(Number(e.target.value))} min="1" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
+                    <input type="number" id="manual-pomodoros" value={manualPomodoros} onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setManualPomodoros('');
+                        return;
+                      }
+                      const intValue = parseInt(value, 10);
+                      if (!isNaN(intValue) && intValue >= 1) {
+                        setManualPomodoros(intValue);
+                      }
+                    }} min="1" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                   <div>
                     <label htmlFor="manual-duration" className="block text-sm font-medium text-gray-400">時間 (分)</label>
-                    <input type="number" id="manual-duration" value={manualDuration} onChange={(e) => setManualDuration(Number(e.target.value))} min="1" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
+                    <input type="number" id="manual-duration" value={manualDuration} onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setManualDuration('');
+                        return;
+                      }
+                      const intValue = parseInt(value, 10);
+                      if (!isNaN(intValue) && intValue >= 1) {
+                        setManualDuration(intValue);
+                      }
+                    }} min="1" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                   <div>
                     <label htmlFor="manual-date" className="block text-sm font-medium text-gray-400">日付</label>
