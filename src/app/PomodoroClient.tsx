@@ -77,6 +77,33 @@ interface UserSettings {
   const shortBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
   const longBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => {
+    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
+    let canPlayThroughCount = 0;
+
+    const handleCanPlay = () => {
+      canPlayThroughCount++;
+      if (canPlayThroughCount === audioRefs.length) {
+        // All audio files can be played
+      }
+    };
+
+    audioRefs.forEach(ref => {
+      if (ref.current) {
+        ref.current.addEventListener('canplaythrough', handleCanPlay);
+        ref.current.load(); 
+      }
+    });
+
+    return () => {
+      audioRefs.forEach(ref => {
+        if (ref.current) {
+          ref.current.removeEventListener('canplaythrough', handleCanPlay);
+        }
+      });
+    };
+  }, []);
+
   // --- Helper to get current duration based on mode ---
   const getDuration = useCallback((mode: TimerMode) => {
     switch (mode) {
