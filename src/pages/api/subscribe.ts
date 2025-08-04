@@ -8,9 +8,9 @@ if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_ADMIN_SDK_CONFIG_BASE64!, 'base64').toString('utf8'))),
     });
-    console.log("Firebase Admin SDK initialized successfully.");
+    
   } catch (error) {
-    console.error("Error initializing Firebase Admin SDK:", error);
+    console.error('Failed to initialize Firebase Admin SDK:', error);
     // Optionally, re-throw the error or handle it appropriately
   }
 }
@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .insert([{ user_id: userId, subscription: subscription }]);
 
     if (error) {
-      console.error('Error saving subscription:', error);
+      
       return res.status(500).json({ error: 'Failed to save subscription' });
     }
 
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .delete();
 
     if (error) {
-      console.error('Error deleting subscription:', error);
+      
       return res.status(500).json({ error: 'Failed to delete subscription' });
     }
 

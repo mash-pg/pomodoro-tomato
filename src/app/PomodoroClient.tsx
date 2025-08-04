@@ -109,43 +109,43 @@ interface UserSettings {
   }, []);
 
   useEffect(() => {
-    console.log("Initial useEffect for subscription loading.");
+    
     if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator && 'PushManager' in window) {
       // Register Service Worker only in production
       navigator.serviceWorker.register('/sw.js')
         .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
+          
           // Get existing subscription
           registration.pushManager.getSubscription().then(subscription => {
             if (subscription) {
               setIsSubscribed(true);
-              console.log("Already subscribed.", subscription);
+              
             } else {
-              console.log("Not subscribed yet.");
+              
             }
             setIsSubscriptionLoading(false);
-            console.log("isSubscriptionLoading set to false.");
-          }).catch(error => {
-            console.error("Error getting subscription:", error);
+            
+          }).catch(() => {
+            
             setIsSubscriptionLoading(false);
           });
         })
-        .catch(error => {
-          console.error("Service Worker registration failed:", error);
+        .catch(() => {
+          
           setIsSubscriptionLoading(false);
         });
     } else {
       if (process.env.NODE_ENV !== 'production') {
-        console.log("Service Worker registration skipped in development mode.");
+        
       } else {
-        console.log("Push notifications not supported.");
+        
       }
       setIsSubscriptionLoading(false);
     }
   }, []);
 
   const handleSubscription = async () => {
-    console.log("handleSubscription called");
+    
 
     // Add this check to prevent running in development
     if (process.env.NODE_ENV !== 'production') {
@@ -163,7 +163,7 @@ interface UserSettings {
 
     if (existingSubscription) {
       // Unsubscribe
-      console.log("Attempting to unsubscribe");
+      
       try {
         const response = await fetch('/api/subscribe', {
           method: 'DELETE',
@@ -176,9 +176,9 @@ interface UserSettings {
           await existingSubscription.unsubscribe();
           setIsSubscribed(false);
           setSubscriptionStatusMessage('通知をオフにしました。');
-          console.log("Unsubscribed successfully.");
+          
         } else {
-          console.error('Failed to unsubscribe on server:', response.status, response.statusText);
+          
           setSubscriptionStatusMessage('通知の解除に失敗しました。(サーバーエラー)');
         }
       } catch (error) {
@@ -187,7 +187,7 @@ interface UserSettings {
       }
     } else {
       // Subscribe
-      console.log("Attempting to subscribe");
+      
       try {
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -203,9 +203,9 @@ interface UserSettings {
         if (response.ok) {
           setIsSubscribed(true);
           setSubscriptionStatusMessage('通知をオンにしました。');
-          console.log("Subscribed successfully.");
+          
         } else {
-          console.error('Failed to subscribe on server:', response.status, response.statusText);
+          
           setSubscriptionStatusMessage('通知の登録に失敗しました。(サーバーエラー)');
         }
       } catch (error) {
@@ -245,7 +245,7 @@ interface UserSettings {
     try {
       localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
     } catch (error) {
-      console.error('Error saving settings to localStorage:', error);
+      console.error('Failed to save settings to localStorage:', error);
     }
 
     // Save settings to Supabase
@@ -264,7 +264,7 @@ interface UserSettings {
           dark_mode: settings.darkMode,
         });
       if (error) {
-        console.error('Error saving user settings:', JSON.stringify(error, null, 2));
+        
       }
     }
   }, [user, setTheme, setDarkMode]); // Added user to dependency array
@@ -308,7 +308,7 @@ interface UserSettings {
         }
       }
     } catch (error) {
-      console.error('Error loading settings from localStorage:', error);
+      console.error('Failed to load settings from localStorage:', error);
     }
   }, [setDarkMode, setTheme]); // Empty dependency array ensures this runs only once on mount
 
@@ -326,7 +326,7 @@ interface UserSettings {
           .eq('user_id', user.id);
 
         if (sessionsError) {
-          console.error('Error fetching sessions:', JSON.stringify(sessionsError, null, 2));
+          
         } else {
           setAllSessions(sessionsData as PomodoroSession[]);
         }
@@ -339,7 +339,7 @@ interface UserSettings {
           .single();
 
         if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 means no rows found
-          console.error('Error fetching settings:', JSON.stringify(settingsError, null, 2));
+          
         } else if (settingsData) {
           setWorkDuration(settingsData.work_minutes);
           setShortBreakDuration(settingsData.short_break_minutes);
@@ -437,40 +437,40 @@ interface UserSettings {
   const prevCompletionCountRef = useRef(completionCount); // completionCountで初期化
 
   useEffect(() => {
-    console.log("Sound useEffect triggered. completionCount:", completionCount, "prevCompletionCountRef.current:", prevCompletionCountRef.current);
+    
 
     // Only play sound if completionCount has increased
     if (completionCount > prevCompletionCountRef.current) {
-      console.log("completionCount > prevCompletionCountRef.current. Playing sound.");
+      
       if (!muteNotifications) {
         let audioPlayer: HTMLAudioElement | null = null;
 
         switch (lastCompletedMode) {
           case 'pomodoro':
             audioPlayer = pomodoroEndAudioRef.current;
-            console.log("Playing pomodoro_end.mp3");
+            
             break;
           case 'shortBreak':
             audioPlayer = shortBreakEndAudioRef.current;
-            console.log("Playing short_break_end.mp3");
+            
             break;
           case 'longBreak':
             audioPlayer = longBreakEndAudioRef.current;
-            console.log("Playing long_break_end.mp3");
+            
             break;
           default:
-            console.log("No specific mode completed, or lastCompletedMode is null.");
+            
             break;
         }
 
         if (audioPlayer) {
-          console.log("Attempting to play audio.", audioPlayer);
-          audioPlayer.play().catch(error => console.error("Audio play failed:", error));
+          
+          
         } else {
-          console.log("Audio player is null.");
+          
         }
       } else {
-        console.log("Sound not played due to muteNotifications.");
+        
       }
 
       // Send push notification

@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error fetching subscriptions:', error);
+      
       return res.status(500).json({ error: 'Failed to fetch subscriptions' });
     }
 
@@ -27,19 +27,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ message: 'No subscriptions found for this user.' });
     }
 
-    const messagePayload = {
-      notification: {
-        title: 'Pomodoro Timer',
-        body: 'Time for a break!',
-      },
-    };
+    // const messagePayload = {
+    //   notification: {
+    //     title: 'Pomodoro Timer',
+    //     body: 'Time for a break!',
+    //   },
+    // };
 
-    const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
+    //const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     try {
       // Send to all tokens for the user
-      const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
-      console.log('Successfully sent message:', response);
+      //const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
+      
       res.status(200).json({ message: 'Notifications sent.' });
     } catch (err) {
       console.error('Error sending notifications:', err);
