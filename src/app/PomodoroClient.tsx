@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
 
 import { useSettings } from "@/context/SettingsContext";
 import { useTimer } from "@/context/TimerContext"; // Import useTimer
