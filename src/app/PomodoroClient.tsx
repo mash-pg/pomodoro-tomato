@@ -191,7 +191,7 @@ interface UserSettings {
       try {
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+          applicationServerKey: '109208697982',
         });
         const response = await fetch('/api/subscribe', {
           method: 'POST',

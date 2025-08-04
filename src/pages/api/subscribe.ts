@@ -1,11 +1,19 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabaseClient';
-import webpush from 'web-push';
+import admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
+  });
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     const { subscription, userId } = req.body;
 
+    // Save subscription to Supabase
     const { error } = await supabase
       .from('push_subscriptions')
       .insert([{ user_id: userId, subscription: subscription }]);
@@ -17,7 +25,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(201).json({ message: 'Subscription saved.' });
   } else if (req.method === 'DELETE') {
-    // TODO: Implement unsubscription logic
+    const { subscription } = req.body;
+
+    // Remove subscription from Supabase
+    const { error } = await supabase
+      .from('push_subscriptions')
+      .eq('subscription', subscription)
+      .delete();
+
+    if (error) {
+      console.error('Error deleting subscription:', error);
+      return res.status(500).json({ error: 'Failed to delete subscription' });
+    }
+
     res.status(200).json({ message: 'Unsubscribed successfully.' });
   } else {
     res.setHeader('Allow', ['POST', 'DELETE']);

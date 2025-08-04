@@ -1,6 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabaseClient';
-import webpush from 'web-push';
+import admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
+  });
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -16,25 +23,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to fetch subscriptions' });
     }
 
-    const notificationPayload = JSON.stringify({
-      title: 'Pomodoro Timer',
-      body: 'Time for a break!',
-    });
+    if (!subscriptions || subscriptions.length === 0) {
+      return res.status(200).json({ message: 'No subscriptions found for this user.' });
+    }
 
-    const vapidOptions = {
-      vapidDetails: {
-        subject: 'mailto:your-email@example.com',
-        publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-        privateKey: process.env.VAPID_PRIVATE_KEY!,
+    const messagePayload = {
+      notification: {
+        title: 'Pomodoro Timer',
+        body: 'Time for a break!',
       },
     };
 
-    const promises = subscriptions.map((s: { subscription: webpush.PushSubscription }) =>
-      webpush.sendNotification(s.subscription, notificationPayload, vapidOptions)
-    );
+    const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     try {
-      await Promise.all(promises);
+      // Send to all tokens for the user
+      const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
+      console.log('Successfully sent message:', response);
       res.status(200).json({ message: 'Notifications sent.' });
     } catch (err) {
       console.error('Error sending notifications:', err);

@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+pomodoro-timer-59f7c-firebase-adminsdk-fbsvc-c8bd20bc9c.json
