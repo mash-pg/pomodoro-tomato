@@ -191,7 +191,7 @@ interface UserSettings {
       try {
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: '109208697982',
+          applicationServerKey: 'BHq_iTaN0ipTfvaMJveqCruBAd6_RlPEcxuphB6mpi0SPEpK9zx7Xhqri5kN2SAyvJ2YGMD-95t1_YDtD-CW1dA',
         });
         const response = await fetch('/api/subscribe', {
           method: 'POST',
