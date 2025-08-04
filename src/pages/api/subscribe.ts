@@ -6,7 +6,7 @@ import admin from 'firebase-admin';
 if (!admin.apps.length) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
+      credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_ADMIN_SDK_CONFIG_BASE64!, 'base64').toString('utf8'))),
     });
     console.log("Firebase Admin SDK initialized successfully.");
   } catch (error) {
