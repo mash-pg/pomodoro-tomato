@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 
-const DynamicSettingsModal = dynamic(() => import("@/components/SettingsModal"), { ssr: false });
 import { useSettings } from "@/context/SettingsContext";
 import { useTimer } from "@/context/TimerContext"; // Import useTimer
 import { supabase } from "@/lib/supabaseClient";
