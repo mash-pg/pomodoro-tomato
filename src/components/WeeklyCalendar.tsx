@@ -63,8 +63,8 @@ export default function WeeklyCalendar({ user, sessions }: WeeklyCalendarProps) 
       <div className="grid grid-cols-7 gap-2 text-center">
         {daysInWeek.map(day => (
           <div key={day.toISOString()} className="p-2 border border-gray-700 rounded-md">
-            <div className="font-bold text-lg">{format(day, "EEE", { locale: ja })}</div> {/* 曜日 */}
-            <div className="text-sm">{format(day, "MM/dd")}</div> {/* 月/日 */}
+            <div className="font-bold text-lg text-white">{format(day, "EEE", { locale: ja })}</div> {/* 曜日 */}
+            <div className="text-sm text-white">{format(day, "MM/dd")}</div> {/* 月/日 */}
             <div className="mt-2 text-blue-400 text-xl font-bold">
               {getPomodorosForDay(day)}
             </div>

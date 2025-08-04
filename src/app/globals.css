@@ -109,7 +109,7 @@ body {
 }
 
 .react-calendar__tile {
-  color: black; /* 日付の数字の色を黒に */
+  color: white; /* 日付の数字の色を白に */
   padding: 10px 6px; /* パディングを調整 */
   height: 60px; /* セルの高さを調整 */
   display: flex;
