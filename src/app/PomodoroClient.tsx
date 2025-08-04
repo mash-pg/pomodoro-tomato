@@ -68,14 +68,18 @@ interface UserSettings {
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
 
-  // --- UI State (from Context) ---
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { showSettingsModal, setShowSettingsModal, settingsRef } = useSettings(); // Get settingsRef from context
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
+  const [subscriptionStatusMessage, setSubscriptionStatusMessage] = useState('');
 
   // --- Refs for audio ---
   const pomodoroEndAudioRef = useRef<HTMLAudioElement | null>(null);
   const shortBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
   const longBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // --- UI State (from Context) ---
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { showSettingsModal, setShowSettingsModal, settingsRef } = useSettings(); // Get settingsRef from context
 
   useEffect(() => {
     const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
@@ -103,6 +107,113 @@ interface UserSettings {
       });
     };
   }, []);
+
+  useEffect(() => {
+    console.log("Initial useEffect for subscription loading.");
+    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      // Register Service Worker only in production
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+          // Get existing subscription
+          registration.pushManager.getSubscription().then(subscription => {
+            if (subscription) {
+              setIsSubscribed(true);
+              console.log("Already subscribed.", subscription);
+            } else {
+              console.log("Not subscribed yet.");
+            }
+            setIsSubscriptionLoading(false);
+            console.log("isSubscriptionLoading set to false.");
+          }).catch(error => {
+            console.error("Error getting subscription:", error);
+            setIsSubscriptionLoading(false);
+          });
+        })
+        .catch(error => {
+          console.error("Service Worker registration failed:", error);
+          setIsSubscriptionLoading(false);
+        });
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("Service Worker registration skipped in development mode.");
+      } else {
+        console.log("Push notifications not supported.");
+      }
+      setIsSubscriptionLoading(false);
+    }
+  }, []);
+
+  const handleSubscription = async () => {
+    console.log("handleSubscription called");
+
+    // Add this check to prevent running in development
+    if (process.env.NODE_ENV !== 'production') {
+      alert('プッシュ通知は本番ビルドでのみテストできます。`npm run build` と `npm run start` を実行してください。');
+      return;
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Push notifications are not supported in this browser.');
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const existingSubscription = await registration.pushManager.getSubscription();
+
+    if (existingSubscription) {
+      // Unsubscribe
+      console.log("Attempting to unsubscribe");
+      try {
+        const response = await fetch('/api/subscribe', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subscription: existingSubscription }),
+        });
+        if (response.ok) {
+          await existingSubscription.unsubscribe();
+          setIsSubscribed(false);
+          setSubscriptionStatusMessage('通知をオフにしました。');
+          console.log("Unsubscribed successfully.");
+        } else {
+          console.error('Failed to unsubscribe on server:', response.status, response.statusText);
+          setSubscriptionStatusMessage('通知の解除に失敗しました。(サーバーエラー)');
+        }
+      } catch (error) {
+        console.error('Failed to unsubscribe:', error);
+        setSubscriptionStatusMessage('通知の解除に失敗しました。(ネットワークエラー)');
+      }
+    } else {
+      // Subscribe
+      console.log("Attempting to subscribe");
+      try {
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        });
+        const response = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subscription, userId: user?.id }),
+        });
+        if (response.ok) {
+          setIsSubscribed(true);
+          setSubscriptionStatusMessage('通知をオンにしました。');
+          console.log("Subscribed successfully.");
+        } else {
+          console.error('Failed to subscribe on server:', response.status, response.statusText);
+          setSubscriptionStatusMessage('通知の登録に失敗しました。(サーバーエラー)');
+        }
+      } catch (error) {
+        console.error('Failed to subscribe:', error);
+        setSubscriptionStatusMessage('通知の登録に失敗しました。(ネットワークエラー)');
+      }
+    }
+  };
 
   // --- Helper to get current duration based on mode ---
   const getDuration = useCallback((mode: TimerMode) => {
@@ -361,11 +472,22 @@ interface UserSettings {
       } else {
         console.log("Sound not played due to muteNotifications.");
       }
+
+      // Send push notification
+      if (isSubscribed && user) {
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+      }
     }
 
     // Update the ref with the current completionCount for the next render
     prevCompletionCountRef.current = completionCount;
-  }, [completionCount, lastCompletedMode, muteNotifications]);
+  }, [completionCount, lastCompletedMode, muteNotifications, isSubscribed, user]);
 
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
@@ -458,6 +580,20 @@ interface UserSettings {
             </div>
           </div>
         )}
+
+        {/* Push Notification Button */}
+        <div className="mt-8">
+          <button
+            onClick={handleSubscription}
+            disabled={isSubscriptionLoading}
+            className="py-2 px-4 rounded-lg bg-gray-500 hover:bg-gray-600 text-white shadow-lg disabled:opacity-50"
+          >
+            {isSubscribed ? '通知をオフにする' : '通知をオンにする'}
+          </button>
+          {subscriptionStatusMessage && (
+            <p className="mt-2 text-sm text-gray-500">{subscriptionStatusMessage}</p>
+          )}
+        </div>
 
         {/* Audio Elements */}
         {isClient && (
