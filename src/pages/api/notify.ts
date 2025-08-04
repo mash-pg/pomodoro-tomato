@@ -2,12 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabaseClient';
 import webpush from 'web-push';
 
-webpush.setVapidDetails(
-  'mailto:your-email@example.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     const { userId } = req.body;
@@ -27,8 +21,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       body: 'Time for a break!',
     });
 
+    const vapidOptions = {
+      vapidDetails: {
+        subject: 'mailto:your-email@example.com',
+        publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        privateKey: process.env.VAPID_PRIVATE_KEY!,
+      },
+    };
+
     const promises = subscriptions.map((s: { subscription: webpush.PushSubscription }) =>
-      webpush.sendNotification(s.subscription, notificationPayload)
+      webpush.sendNotification(s.subscription, notificationPayload, vapidOptions)
     );
 
     try {

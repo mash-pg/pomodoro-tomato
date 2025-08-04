@@ -2,15 +2,7 @@ import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        buffer: require.resolve('buffer/'),
-      };
-    }
-    return config;
-  },
+  /* config options here */
 };
 
 const pwaConfig = withPWA({
