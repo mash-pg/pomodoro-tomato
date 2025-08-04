@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { PomodoroSettings } from '@/context/SettingsContext'; // Import the shared type
+import { PomodoroSettings, useSettings } from '@/context/SettingsContext'; // Import the shared type
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -16,6 +16,17 @@ export default function SettingsModal({
   initialSettings,
   onSave,
 }: SettingsModalProps) {
+  const {
+    setWorkDuration: setGlobalWorkDuration,
+    setShortBreakDuration: setGlobalShortBreakDuration,
+    setLongBreakDuration: setGlobalLongBreakDuration,
+    setLongBreakInterval: setGlobalLongBreakInterval,
+    setAutoStartWork: setGlobalAutoStartWork,
+    setAutoStartBreak: setGlobalAutoStartBreak,
+    setTheme: setGlobalTheme,
+    setDarkMode: setGlobalDarkMode,
+  } = useSettings();
+
   const [workDuration, setWorkDuration] = useState<number | ''>(initialSettings.workDuration);
   const [shortBreakDuration, setShortBreakDuration] = useState<number | ''>(initialSettings.shortBreakDuration);
   const [longBreakDuration, setLongBreakDuration] = useState<number | ''>(initialSettings.longBreakDuration);
@@ -40,8 +51,7 @@ export default function SettingsModal({
   }, [initialSettings]);
 
   const handleSave = () => {
-    // On save, ensure values are at least 1.
-    onSave({
+    const newSettings: PomodoroSettings = {
       workDuration: Number(workDuration) >= 1 ? Number(workDuration) : 1,
       shortBreakDuration: Number(shortBreakDuration) >= 1 ? Number(shortBreakDuration) : 1,
       longBreakDuration: Number(longBreakDuration) >= 1 ? Number(longBreakDuration) : 1,
@@ -51,7 +61,20 @@ export default function SettingsModal({
       muteNotifications,
       darkMode,
       theme,
-    });
+    };
+
+    // Update global state
+    setGlobalWorkDuration(newSettings.workDuration);
+    setGlobalShortBreakDuration(newSettings.shortBreakDuration);
+    setGlobalLongBreakDuration(newSettings.longBreakDuration);
+    setGlobalLongBreakInterval(newSettings.longBreakInterval);
+    setGlobalAutoStartWork(newSettings.autoStartWork);
+    setGlobalAutoStartBreak(newSettings.autoStartBreak);
+    setGlobalTheme(newSettings.theme);
+    setGlobalDarkMode(newSettings.darkMode);
+
+    // Persist settings
+    onSave(newSettings);
     onClose();
   };
 

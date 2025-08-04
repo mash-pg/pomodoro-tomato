@@ -34,6 +34,12 @@ interface SettingsContextType {
   longBreakInterval: number;
   autoStartWork: boolean;
   autoStartBreak: boolean;
+  setWorkDuration: (duration: number) => void;
+  setShortBreakDuration: (duration: number) => void;
+  setLongBreakDuration: (duration: number) => void;
+  setLongBreakInterval: (interval: number) => void;
+  setAutoStartWork: (autoStart: boolean) => void;
+  setAutoStartBreak: (autoStart: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -122,6 +128,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       longBreakInterval,
       autoStartWork,
       autoStartBreak,
+      setWorkDuration,
+      setShortBreakDuration,
+      setLongBreakDuration,
+      setLongBreakInterval,
+      setAutoStartWork,
+      setAutoStartBreak,
     }}>
       {children}
     </SettingsContext.Provider>
