@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabaseClient';
 import webpush from 'web-push';
+import { Buffer } from 'buffer';
 
 webpush.setVapidDetails(
   'mailto:your-email@example.com',
