@@ -7,7 +7,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.');
 }
 
-export const supabase = typeof window !== 'undefined'
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  : ({} as any); // サーバーサイドでは空のオブジェクトを返すか、適切なモックを返す
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

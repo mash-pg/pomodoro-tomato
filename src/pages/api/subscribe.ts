@@ -18,6 +18,8 @@ if (!admin.apps.length) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     const { subscription, userId } = req.body;
+    console.log('POST /api/subscribe - Received subscription:', subscription);
+    console.log('POST /api/subscribe - Received userId:', userId);
 
     // Save subscription to Supabase
     const { error } = await supabase
@@ -25,22 +27,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .insert([{ user_id: userId, subscription: subscription }]);
 
     if (error) {
-      
+      console.error('POST /api/subscribe - Supabase error:', error);
       return res.status(500).json({ error: 'Failed to save subscription' });
     }
 
     res.status(201).json({ message: 'Subscription saved.' });
   } else if (req.method === 'DELETE') {
     const { subscription } = req.body;
+    console.log('DELETE /api/subscribe - Received subscription:', subscription);
+    console.log('DELETE /api/subscribe - Endpoint to delete:', subscription.endpoint);
 
     // Remove subscription from Supabase
     const { error } = await supabase
       .from('push_subscriptions')
-      .eq('subscription', subscription)
-      .delete();
+      .delete() // delete() を先に呼び出す
+      .eq('endpoint', subscription.endpoint);
 
     if (error) {
-      
+      console.error('DELETE /api/subscribe - Supabase error:', error);
       return res.status(500).json({ error: 'Failed to delete subscription' });
     }
 

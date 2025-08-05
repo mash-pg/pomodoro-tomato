@@ -4,9 +4,15 @@ import admin from 'firebase-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_SDK_CONFIG!)),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_ADMIN_SDK_CONFIG_BASE64!, 'base64').toString('utf8'))),
+    });
+    
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+    // Optionally, re-throw the error or handle it appropriately
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -27,18 +33,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ message: 'No subscriptions found for this user.' });
     }
 
-    // const messagePayload = {
-    //   notification: {
-    //     title: 'Pomodoro Timer',
-    //     body: 'Time for a break!',
-    //   },
-    // };
+    const messagePayload = {
+      notification: {
+        title: 'Pomodoro Timer',
+        body: 'Time for a break!',
+      },
+    };
 
-    //const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     try {
       // Send to all tokens for the user
-      //const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
+      const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
       
       res.status(200).json({ message: 'Notifications sent.' });
     } catch (err) {

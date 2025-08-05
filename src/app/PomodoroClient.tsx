@@ -110,9 +110,9 @@ interface UserSettings {
 
   useEffect(() => {
     
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator && 'PushManager' in window) {
-      // Register Service Worker only in production
-      navigator.serviceWorker.register('/sw.js')
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const swUrl = process.env.NODE_ENV === 'development' ? '/dev-sw.js' : '/sw.js';
+      navigator.serviceWorker.register(swUrl)
         .then(registration => {
           
           // Get existing subscription
@@ -135,11 +135,6 @@ interface UserSettings {
           setIsSubscriptionLoading(false);
         });
     } else {
-      if (process.env.NODE_ENV !== 'production') {
-        
-      } else {
-        
-      }
       setIsSubscriptionLoading(false);
     }
   }, []);
@@ -147,11 +142,10 @@ interface UserSettings {
   const handleSubscription = async () => {
     
 
-    // Add this check to prevent running in development
-    if (process.env.NODE_ENV !== 'production') {
-      alert('プッシュ通知は本番ビルドでのみテストできます。`npm run build` と `npm run start` を実行してください。');
-      return;
-    }
+    // if (process.env.NODE_ENV !== 'production') {
+    //   alert('プッシュ通知は本番ビルドでのみテストできます。`npm run build` と `npm run start` を実行してください。');
+    //   return;
+    // }
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       alert('Push notifications are not supported in this browser.');
@@ -191,7 +185,7 @@ interface UserSettings {
       try {
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: 'BHq_iTaN0ipTfvaMJveqCruBAd6_RlPEcxuphB6mpi0SPEpK9zx7Xhqri5kN2SAyvJ2YGMD-95t1_YDtD-CW1dA',
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         });
         const response = await fetch('/api/subscribe', {
           method: 'POST',
@@ -496,6 +490,11 @@ interface UserSettings {
   // --- Render --- 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
+      {/* Debugging: Display environment variables */}
+      <div className="text-xs text-gray-500 mb-4">
+        <p>SUPABASE_URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
+        <p>SUPABASE_ANON_KEY: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not Set'}</p>
+      </div>
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
 
         {/* Mode Switcher */}
