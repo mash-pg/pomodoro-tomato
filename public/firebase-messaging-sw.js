@@ -32,12 +32,6 @@ messaging.onBackgroundMessage((payload) => {
     icon: payload.notification.icon || '/icon-192x192.png',
   };
 
-  const notificationTitle = payload.notification.title || 'Background Message Title';
-  const notificationOptions = {
-    body: payload.notification.body || 'Background Message body.',
-    icon: payload.notification.icon || '/icon-192x192.png',
-  };
-
   self.registration.showNotification(
     notificationTitle,
     notificationOptions,
