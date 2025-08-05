@@ -21,16 +21,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')
-      .select('subscription')
+      .select('fcm_token')
       .eq('user_id', userId);
 
     if (error) {
-      
-      return res.status(500).json({ error: 'Failed to fetch subscriptions' });
+      console.error('Failed to fetch FCM tokens:', error);
+      return res.status(500).json({ error: 'Failed to fetch FCM tokens' });
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      return res.status(200).json({ message: 'No subscriptions found for this user.' });
+      return res.status(200).json({ message: 'No FCM tokens found for this user.' });
     }
 
     const messagePayload = {
@@ -40,12 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    const tokens = subscriptions.map((s: { subscription: any }) => s.subscription.keys.p256dh); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const tokens = subscriptions.map((s: { fcm_token: string }) => s.fcm_token);
 
     try {
       // Send to all tokens for the user
       const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
-      
+      console.log('Successfully sent message:', response);
       res.status(200).json({ message: 'Notifications sent.' });
     } catch (err) {
       console.error('Error sending notifications:', err);

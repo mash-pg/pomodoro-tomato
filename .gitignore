@@ -40,6 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-pomodoro-timer-59f7c-firebase-adminsdk-fbsvc-9e479bc2a1.json
-
+pomodoro-timer-59f7c-firebase-adminsdk-fbsvc-2c0a7d10f0.json
 .vercel

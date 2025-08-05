@@ -8,6 +8,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { SettingsModalProps } from "@/components/SettingsModal";
 
+// Firebase Imports
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
+
 // Define types for clarity
 type TimerMode = 'pomodoro' | 'shortBreak' | 'longBreak';
 
@@ -17,6 +21,21 @@ interface PomodoroSession {
   duration_minutes: number;
   user_id: string;
 }
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+};
+
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const messaging = typeof window !== 'undefined' && getMessaging(app);
 
 // UserSettings interface is no longer directly used here, but kept for reference if needed elsewhere.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,7 +87,7 @@ interface UserSettings {
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
 
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
   const [subscriptionStatusMessage, setSubscriptionStatusMessage] = useState('');
 
@@ -109,102 +128,116 @@ interface UserSettings {
   }, []);
 
   useEffect(() => {
-    
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      const swUrl = process.env.NODE_ENV === 'development' ? '/dev-sw.js' : '/sw.js';
-      navigator.serviceWorker.register(swUrl)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && messaging) {
+      // Register the Firebase Messaging Service Worker
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
         .then(registration => {
-          
-          // Get existing subscription
-          registration.pushManager.getSubscription().then(subscription => {
-            if (subscription) {
-              setIsSubscribed(true);
-              
-            } else {
-              
-            }
-            setIsSubscriptionLoading(false);
-            
-          }).catch(() => {
-            
-            setIsSubscriptionLoading(false);
-          });
+          // Wait for the service worker to become active
+          return navigator.serviceWorker.ready;
         })
-        .catch(() => {
-          
+        .then(registration => {
+          getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, serviceWorkerRegistration: registration })
+            .then((currentToken) => {
+              if (currentToken) {
+                setFcmToken(currentToken);
+                // Send token to your backend if it's new or changed
+                // This part will be handled by handleSubscription
+              } else {
+                console.log('No registration token available. Request permission to generate one.');
+                setFcmToken(null);
+              }
+              setIsSubscriptionLoading(false);
+            })
+            .catch((err) => {
+              console.error('An error occurred while retrieving token. ', err);
+              setFcmToken(null);
+              setIsSubscriptionLoading(false);
+            });
+        })
+        .catch((err) => {
+          console.error('Service Worker registration failed: ', err);
           setIsSubscriptionLoading(false);
         });
+
+      // Handle incoming messages while the app is in focus
+      onMessage(messaging, (payload) => {
+        console.log('Message received. ', payload);
+        // Display a notification when the app is in focus
+        if (payload.notification) {
+          new Notification(payload.notification.title || 'Pomodoro Timer', {
+            body: payload.notification.body || 'Time for a break!',
+            icon: payload.notification.icon || '/icon-192x192.png', // Use your app icon
+            tag: 'pomodoro-notification'
+          });
+        }
+      });
     } else {
       setIsSubscriptionLoading(false);
     }
-  }, []);
+  }, [messaging]);
 
   const handleSubscription = async () => {
-    
-
-    // if (process.env.NODE_ENV !== 'production') {
-    //   alert('プッシュ通知は本番ビルドでのみテストできます。`npm run build` と `npm run start` を実行してください。');
-    //   return;
-    // }
-
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Push notifications are not supported in this browser.');
+    if (!messaging || !user) {
+      setSubscriptionStatusMessage('通知機能は利用できません。');
       return;
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    const existingSubscription = await registration.pushManager.getSubscription();
-
-    if (existingSubscription) {
+    setIsSubscriptionLoading(true);
+    if (fcmToken) {
       // Unsubscribe
-      
       try {
         const response = await fetch('/api/subscribe', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ subscription: existingSubscription }),
+          body: JSON.stringify({ fcmToken, userId: user.id }),
         });
         if (response.ok) {
-          await existingSubscription.unsubscribe();
-          setIsSubscribed(false);
+          setFcmToken(null); // Clear token after successful unsubscribe
           setSubscriptionStatusMessage('通知をオフにしました。');
-          
         } else {
-          
           setSubscriptionStatusMessage('通知の解除に失敗しました。(サーバーエラー)');
         }
       } catch (error) {
         console.error('Failed to unsubscribe:', error);
         setSubscriptionStatusMessage('通知の解除に失敗しました。(ネットワークエラー)');
+      } finally {
+        setIsSubscriptionLoading(false);
       }
     } else {
       // Subscribe
-      
       try {
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-        });
-        const response = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ subscription, userId: user?.id }),
-        });
-        if (response.ok) {
-          setIsSubscribed(true);
-          setSubscriptionStatusMessage('通知をオンにしました。');
-          
+        const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY });
+        if (currentToken) {
+          // Get PushSubscription object
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+          });
+
+          const response = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fcmToken: currentToken, userId: user.id, subscription: subscription }),
+          });
+          if (response.ok) {
+            setFcmToken(currentToken);
+            setSubscriptionStatusMessage('通知をオンにしました。');
+          } else {
+            setSubscriptionStatusMessage('通知の登録に失敗しました。(サーバーエラー)');
+          }
         } else {
-          
-          setSubscriptionStatusMessage('通知の登録に失敗しました。(サーバーエラー)');
+          setSubscriptionStatusMessage('通知の許可が必要です。');
         }
       } catch (error) {
         console.error('Failed to subscribe:', error);
         setSubscriptionStatusMessage('通知の登録に失敗しました。(ネットワークエラー)');
+      } finally {
+        setIsSubscriptionLoading(false);
       }
     }
   };
@@ -467,7 +500,7 @@ interface UserSettings {
       }
 
       // Send push notification
-      if (isSubscribed && user) {
+      if (fcmToken && user) {
         fetch('/api/notify', {
           method: 'POST',
           headers: {
@@ -480,7 +513,7 @@ interface UserSettings {
 
     // Update the ref with the current completionCount for the next render
     prevCompletionCountRef.current = completionCount;
-  }, [completionCount, lastCompletedMode, muteNotifications, isSubscribed, user]);
+  }, [completionCount, lastCompletedMode, muteNotifications, fcmToken, user]);
 
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
@@ -505,8 +538,6 @@ interface UserSettings {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       {/* Debugging: Display environment variables */}
       <div className="text-xs text-gray-500 mb-4">
-        <p>SUPABASE_URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
-        <p>SUPABASE_ANON_KEY: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not Set'}</p>
       </div>
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
 
@@ -601,7 +632,7 @@ interface UserSettings {
             disabled={isSubscriptionLoading}
             className="py-2 px-4 rounded-lg bg-gray-500 hover:bg-gray-600 text-white shadow-lg disabled:opacity-50"
           >
-            {isSubscribed ? '通知をオフにする' : '通知をオンにする'}
+            {fcmToken ? '通知をオフにする' : '通知をオンにする'}
           </button>
           {subscriptionStatusMessage && (
             <p className="mt-2 text-sm text-gray-500">{subscriptionStatusMessage}</p>

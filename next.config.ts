@@ -7,9 +7,9 @@ const nextConfig: NextConfig = {
 
 const pwaConfig = withPWA({
   dest: "public",
-  register: true,
+  register: false, // Temporarily disable PWA registration
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // 開発環境ではPWAを無効にする
+  disable: true, // Temporarily disable PWA in all environments
   buildExcludes: [
     /app-build-manifest\.json$/,
     /app-path-routes-manifest\.json$/,
