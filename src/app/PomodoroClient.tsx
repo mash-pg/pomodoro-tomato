@@ -458,10 +458,9 @@ interface UserSettings {
         }
 
         if (audioPlayer) {
-          
-          
+          audioPlayer.play();
         } else {
-          
+          // console.log("Audio player not found for mode:", lastCompletedMode);
         }
       } else {
         
@@ -486,6 +485,20 @@ interface UserSettings {
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
   };
+
+  // --- Function to unlock audio context ---
+  const unlockAudioContext = useCallback(() => {
+    if (pomodoroEndAudioRef.current) {
+      pomodoroEndAudioRef.current.play().then(() => {
+        pomodoroEndAudioRef.current?.pause();
+        if (pomodoroEndAudioRef.current) {
+          pomodoroEndAudioRef.current.currentTime = 0; // Reset to start
+        }
+      }).catch(error => {
+        console.warn("Failed to unlock audio context:", error);
+      });
+    }
+  }, []);
 
   // --- Render --- 
   return (
@@ -529,6 +542,7 @@ interface UserSettings {
           {!isActive && (
             <button
               onClick={() => {
+                unlockAudioContext();
                 startTimer();
               }}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
