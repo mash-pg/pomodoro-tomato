@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import StatsPage from '@/app/stats/page';
 import { supabase } from '@/lib/supabaseClient';
 import '@testing-library/jest-dom';
@@ -198,5 +198,103 @@ describe('StatsPage', () => {
     render(<StatsPage />);
 
     expect(await screen.findByText(errorMessage)).toBeInTheDocument();
+  });
+
+  it('should handle pagination correctly', async () => {
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
+    const sessionsPage1 = Array.from({ length: 10 }, (_, i) => ({ id: i, created_at: new Date().toISOString(), duration_minutes: 25 }));
+    const sessionsPage2 = Array.from({ length: 5 }, (_, i) => ({ id: i + 10, created_at: new Date().toISOString(), duration_minutes: 25 }));
+    const sessionsMock = createSupabaseMock(sessionsPage1);
+    (sessionsMock.range as jest.Mock).mockResolvedValueOnce({ data: sessionsPage1, error: null, count: 15 });
+
+    from.mockImplementation((tableName: string) => {
+        return tableName === 'pomodoro_sessions' ? sessionsMock : createSupabaseMock(mockGoals);
+    });
+
+    render(<StatsPage />);
+
+    await waitFor(() => expect(screen.getByText('次へ')).toBeInTheDocument());
+    
+    // Navigate to the next page
+    (sessionsMock.range as jest.Mock).mockResolvedValueOnce({ data: sessionsPage2, error: null, count: 15 });
+    fireEvent.click(screen.getByText('次へ'));
+
+    await waitFor(() => {
+        expect(sessionsMock.range).toHaveBeenCalledWith(10, 19);
+        expect(screen.getByText('ページ 2 / 2')).toBeInTheDocument();
+    });
+
+    // Navigate back to the previous page
+    (sessionsMock.range as jest.Mock).mockResolvedValueOnce({ data: sessionsPage1, error: null, count: 15 });
+    fireEvent.click(screen.getByText('前へ'));
+
+    await waitFor(() => {
+        expect(sessionsMock.range).toHaveBeenCalledWith(0, 9);
+        expect(screen.getByText('ページ 1 / 2')).toBeInTheDocument();
+    });
+  });
+
+  it('should clear daily sessions when the clear button is clicked', async () => {
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
+    const sessionsMock = createSupabaseMock(mockSessions);
+    from.mockImplementation((tableName: string) => {
+        return tableName === 'pomodoro_sessions' ? sessionsMock : createSupabaseMock(mockGoals);
+    });
+
+    render(<StatsPage />);
+
+    await waitFor(() => expect(screen.getByText('今日のセッションをクリア')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('今日のセッションをクリア'));
+
+    await waitFor(() => {
+        expect(sessionsMock.delete).toHaveBeenCalled();
+        expect(sessionsMock.gte).toHaveBeenCalled();
+        expect(sessionsMock.lte).toHaveBeenCalled();
+    });
+  });
+
+  it('should show an alert for invalid manual session input', async () => {
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
+    from.mockImplementation((tableName: string) => createSupabaseMock(tableName === 'user_goals' ? mockGoals : []));
+
+    render(<StatsPage />);
+
+    // Wait for the component to be ready
+    await screen.findByText('セッションを追加');
+
+    // Perform actions
+    fireEvent.change(screen.getByLabelText('ポモドーロ数'), { target: { value: '' } });
+    fireEvent.click(screen.getByText('セッションを追加'));
+
+    // Assert that alert was called
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('ポモドーロ数と時間は正の数を入力してください。');
+    });
+  });
+
+  it('should show loading state when saving goals', async () => {
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
+    const goalsMock = createSupabaseMock(mockGoals);
+    let resolveUpsert: any;
+    const upsertPromise = new Promise(resolve => { resolveUpsert = resolve; });
+    (goalsMock.upsert as jest.Mock).mockReturnValue(upsertPromise);
+
+    from.mockImplementation((tableName: string) => {
+        return tableName === 'user_goals' ? goalsMock : createSupabaseMock([]);
+    });
+
+    render(<StatsPage />);
+
+    // Wait for the button to be ready and click it
+    const saveButton = await screen.findByText('目標を保存');
+    fireEvent.click(saveButton);
+
+    // Wait for the loading indicator to appear
+    await screen.findByText('保存中...');
+
+    // Resolve the promise to allow the test to finish cleanly
+    await act(async () => {
+        resolveUpsert({ error: null });
+    });
   });
 });

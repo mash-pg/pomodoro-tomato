@@ -42,6 +42,7 @@ export default function StatsPage() {
   const [manualDate, setManualDate] = useState('');
   const [manualTime, setManualTime] = useState('');
   const [addLoading, setAddLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [sessionsPerPage] = useState(10);
@@ -174,7 +175,7 @@ export default function StatsPage() {
 
   const handleSaveGoals = async () => {
     if (!user) return alert('目標を保存するにはログインしてください。');
-    setLoading(true);
+    setIsSaving(true);
     const { error } = await supabase.from('user_goals').upsert({ 
       user_id: user.id,
       daily_pomodoros: Number(goals.daily_pomodoros) || 0,
@@ -183,7 +184,7 @@ export default function StatsPage() {
     });
     if (error) setError('目標の保存に失敗しました。');
     else alert('目標を保存しました。');
-    setLoading(false);
+    setIsSaving(false);
   };
 
   const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,7 +335,7 @@ export default function StatsPage() {
                     <input type="number" id="monthly_pomodoros" name="monthly_pomodoros" value={goals.monthly_pomodoros} onChange={handleGoalChange} min="0" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                 </div>
-                <button onClick={handleSaveGoals} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md" disabled={loading}>{loading ? '保存中...' : '目標を保存'}</button>
+                <button onClick={handleSaveGoals} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md" disabled={isSaving}>{isSaving ? '保存中...' : '目標を保存'}</button>
               </div>
 
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
