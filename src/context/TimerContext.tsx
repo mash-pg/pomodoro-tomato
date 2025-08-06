@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useSettings } from './SettingsContext';
@@ -126,7 +126,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
           // --- Timer Completion ---
           setLastCompletedMode(mode); // Record which mode just finished
           setCompletionCount(c => c + 1); // Trigger the completion event
-          setIsActive(false);
+          setIsActive(false); // Stop the current timer
+          setIsPaused(false); // Ensure it's not paused
 
           if (mode === 'pomodoro') {
             if (user) {
@@ -142,12 +143,27 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             const newPomodoroCount = pomodoroCount + 1;
             setPomodoroCount(newPomodoroCount);
             const nextMode: TimerMode = newPomodoroCount % longBreakInterval === 0 ? 'longBreak' : 'shortBreak';
-            setMode(nextMode);
-            if (autoStartBreak) setIsActive(true);
+            const nextMinutes: number = nextMode === 'longBreak' ? longBreakDuration : shortBreakDuration;
 
-          } else {
-            setMode('pomodoro');
-            if (autoStartWork) setIsActive(true);
+            setMode(nextMode);
+            setMinutes(nextMinutes);
+            setSeconds(0);
+
+            if (autoStartBreak) {
+              startTimer();
+            }
+
+          } else { // This is for shortBreak or longBreak
+            const nextMode: TimerMode = 'pomodoro';
+            const nextMinutes: number = workDuration;
+
+            setMode(nextMode);
+            setMinutes(nextMinutes);
+            setSeconds(0);
+
+            if (autoStartWork) {
+              startTimer();
+            }
           }
         }
       }, 1000);
@@ -169,16 +185,16 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [mode, workDuration, shortBreakDuration, longBreakDuration, isActive, isPaused, isInitialLoad]);
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     setIsActive(true);
     setIsPaused(false);
-  };
+  }, []);
 
-  const pauseTimer = () => {
+  const pauseTimer = useCallback(() => {
     setIsPaused(true);
-  };
+  }, []);
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     setIsActive(false);
     setIsPaused(false);
     switch (mode) {
@@ -187,7 +203,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       case 'longBreak': setMinutes(longBreakDuration); break;
     }
     setSeconds(0);
-  };
+  }, [mode, workDuration, shortBreakDuration, longBreakDuration]);
 
   const value = {
     mode,

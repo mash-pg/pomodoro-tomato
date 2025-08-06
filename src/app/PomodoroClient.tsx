@@ -470,6 +470,20 @@ interface UserSettings {
     if (completionCount > prevCompletionCountRef.current) {
       
       if (!muteNotifications) {
+        // Stop all sounds before playing the new one
+        if (pomodoroEndAudioRef.current) {
+            pomodoroEndAudioRef.current.pause();
+            pomodoroEndAudioRef.current.currentTime = 0;
+        }
+        if (shortBreakEndAudioRef.current) {
+            shortBreakEndAudioRef.current.pause();
+            shortBreakEndAudioRef.current.currentTime = 0;
+        }
+        if (longBreakEndAudioRef.current) {
+            longBreakEndAudioRef.current.pause();
+            longBreakEndAudioRef.current.currentTime = 0;
+        }
+
         let audioPlayer: HTMLAudioElement | null = null;
 
         switch (lastCompletedMode) {
@@ -521,16 +535,19 @@ interface UserSettings {
 
   // --- Function to unlock audio context ---
   const unlockAudioContext = useCallback(() => {
-    if (pomodoroEndAudioRef.current) {
-      pomodoroEndAudioRef.current.play().then(() => {
-        pomodoroEndAudioRef.current?.pause();
-        if (pomodoroEndAudioRef.current) {
-          pomodoroEndAudioRef.current.currentTime = 0; // Reset to start
-        }
-      }).catch(error => {
-        console.warn("Failed to unlock audio context:", error);
-      });
-    }
+    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
+    audioRefs.forEach(ref => {
+      if (ref.current) {
+        ref.current.play().then(() => {
+          ref.current?.pause();
+          if (ref.current) {
+            ref.current.currentTime = 0; // Reset to start
+          }
+        }).catch(error => {
+          console.warn("Failed to unlock audio context for", ref.current?.src, ":", error);
+        });
+      }
+    });
   }, []);
 
   // --- Render --- 
