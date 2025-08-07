@@ -110,8 +110,26 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+  const startTimer = useCallback(() => {
+    setIsActive(true);
+    setIsPaused(false);
+  }, []);
 
-  // Core timer logic
+  const pauseTimer = useCallback(() => {
+    setIsPaused(true);
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    setIsActive(false);
+    setIsPaused(false);
+    switch (mode) {
+      case 'pomodoro': setMinutes(workDuration); break;
+      case 'shortBreak': setMinutes(shortBreakDuration); break;
+      case 'longBreak': setMinutes(longBreakDuration); break;
+    }
+    setSeconds(0);
+  }, [mode, workDuration, shortBreakDuration, longBreakDuration]);
+// Core timer logic (依存配列も完璧なバージョン)
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -124,10 +142,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
           setSeconds(59);
         } else {
           // --- Timer Completion ---
-          setLastCompletedMode(mode); // Record which mode just finished
-          setCompletionCount(c => c + 1); // Trigger the completion event
-          setIsActive(false); // Stop the current timer
-          setIsPaused(false); // Ensure it's not paused
+          setLastCompletedMode(mode);
+          setCompletionCount(c => c + 1);
+          setIsActive(false);
+          setIsPaused(false);
 
           if (mode === 'pomodoro') {
             if (user) {
@@ -153,7 +171,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
               startTimer();
             }
 
-          } else { // This is for shortBreak or longBreak
+          } else {
             const nextMode: TimerMode = 'pomodoro';
             const nextMinutes: number = workDuration;
 
@@ -169,8 +187,25 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       }, 1000);
     }
 
-    return () => { if (interval) clearInterval(interval); };
-  }, [isActive, isPaused, seconds, minutes, mode, user, workDuration, pomodoroCount, longBreakInterval, autoStartBreak, autoStartWork]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [
+    isActive,
+    isPaused,
+    seconds,
+    minutes,
+    mode,
+    user,
+    workDuration,
+    pomodoroCount,
+    longBreakInterval,
+    autoStartBreak,
+    autoStartWork,
+    startTimer,
+    shortBreakDuration,
+    longBreakDuration,
+  ]);
 
   // Update timer display when settings/mode change, but only for a stopped timer.
   useEffect(() => {
@@ -184,26 +219,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       setSeconds(0);
     }
   }, [mode, workDuration, shortBreakDuration, longBreakDuration, isActive, isPaused, isInitialLoad]);
-
-  const startTimer = useCallback(() => {
-    setIsActive(true);
-    setIsPaused(false);
-  }, []);
-
-  const pauseTimer = useCallback(() => {
-    setIsPaused(true);
-  }, []);
-
-  const resetTimer = useCallback(() => {
-    setIsActive(false);
-    setIsPaused(false);
-    switch (mode) {
-      case 'pomodoro': setMinutes(workDuration); break;
-      case 'shortBreak': setMinutes(shortBreakDuration); break;
-      case 'longBreak': setMinutes(longBreakDuration); break;
-    }
-    setSeconds(0);
-  }, [mode, workDuration, shortBreakDuration, longBreakDuration]);
 
   const value = {
     mode,

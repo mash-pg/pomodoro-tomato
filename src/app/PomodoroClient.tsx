@@ -131,7 +131,7 @@ interface UserSettings {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && messaging) {
       // Register the Firebase Messaging Service Worker
       navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then(registration => {
+        .then(() => {
           // Wait for the service worker to become active
           return navigator.serviceWorker.ready;
         })
@@ -174,7 +174,7 @@ interface UserSettings {
     } else {
       setIsSubscriptionLoading(false);
     }
-  }, [messaging]);
+  }, []);
 
   const handleSubscription = async () => {
     if (!messaging || !user) {
