@@ -1,0 +1,221 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import PomodoroClient from '@/app/PomodoroClient';
+import { useTimer } from '@/context/TimerContext';
+import { useSettings } from '@/context/SettingsContext';
+import { supabase } from '@/lib/supabaseClient';
+import * as firebaseMessaging from 'firebase/messaging';
+import admin from 'firebase-admin';
+import '@testing-library/jest-dom';
+
+// --- Mocks ---
+jest.mock('@/context/TimerContext');
+jest.mock('@/context/SettingsContext');
+jest.mock('@/lib/supabaseClient');
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(),
+  getApps: jest.fn(() => [true]),
+  getApp: jest.fn(),
+}));
+jest.mock('firebase/messaging', () => ({
+  getMessaging: jest.fn(() => ({
+    getToken: jest.fn().mockResolvedValue('mock-fcm-token'),
+    onMessage: jest.fn(),
+  })),
+  getToken: jest.fn().mockResolvedValue('mock-fcm-token'),
+  onMessage: jest.fn(),
+}));
+jest.mock('firebase-admin', () => ({
+  apps: [],
+  initializeApp: jest.fn(),
+  credential: {
+    cert: jest.fn(),
+  },
+  messaging: jest.fn(() => ({
+    sendEachForMulticast: jest.fn().mockResolvedValue({ successCount: 1 }),
+  })),
+}));
+
+// --- Global Mocks ---
+window.HTMLMediaElement.prototype.play = jest.fn(() => Promise.resolve());
+window.HTMLMediaElement.prototype.pause = jest.fn();
+window.HTMLMediaElement.prototype.load = jest.fn();
+
+global.Notification = jest.fn(() => ({ permission: 'granted' })) as any;
+global.PushManager = class PushManager {
+  static supportedContentEncodings: string[] = [];
+  getSubscription = jest.fn();
+  permissionState = jest.fn();
+  subscribe = jest.fn();
+};
+
+Object.defineProperty(navigator, 'serviceWorker', {
+  value: {
+    register: jest.fn().mockResolvedValue({
+      scope: '/',
+      pushManager: {
+        subscribe: jest.fn().mockResolvedValue({ endpoint: 'mock-endpoint' }),
+      },
+    }),
+    ready: Promise.resolve({
+      pushManager: {
+        subscribe: jest.fn().mockResolvedValue({ endpoint: 'mock-endpoint' }),
+      },
+      active: {},
+      scope: '/',
+    }),
+  },
+  writable: true,
+});
+
+const mockUseTimer = useTimer as jest.Mock;
+const mockUseSettings = useSettings as jest.Mock;
+const mockGetToken = firebaseMessaging.getToken as jest.Mock;
+const mockOnMessage = firebaseMessaging.onMessage as jest.Mock;
+const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+const mockUser = { id: 'test-user-id', email: 'test@example.com' };
+
+describe('PomodoroClient', () => {
+  let timerContextValue: any;
+  let settingsContextValue: any;
+
+  const renderComponent = async () => {
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<PomodoroClient />);
+    });
+    return renderResult;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    timerContextValue = {
+      minutes: 25, seconds: 0, isActive: false, isPaused: false,
+      completionCount: 0, lastCompletedMode: null, currentMode: 'pomodoro',
+      startTimer: jest.fn(), pauseTimer: jest.fn(), resetTimer: jest.fn(), setMode: jest.fn(),
+    };
+    settingsContextValue = {
+      theme: 'dark', setTheme: jest.fn(), darkMode: true, setDarkMode: jest.fn(),
+      showSettingsModal: false, setShowSettingsModal: jest.fn(), settingsRef: { current: {} },
+    };
+
+    mockUseTimer.mockReturnValue(timerContextValue);
+    mockUseSettings.mockReturnValue(settingsContextValue);
+
+    mockSupabase.auth = {
+      getUser: jest.fn().mockResolvedValue({ data: { user: mockUser } }),
+      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+    } as any;
+
+    mockSupabase.from = jest.fn().mockImplementation((tableName: string) => {
+        const baseMock = {
+            select: jest.fn().mockReturnThis(),
+            insert: jest.fn().mockResolvedValue({ error: null }),
+            delete: jest.fn().mockResolvedValue({ error: null }),
+            upsert: jest.fn().mockResolvedValue({ error: null }),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: { mute_notifications: false }, error: null }),
+        };
+        if (tableName === 'pomodoro_sessions') {
+            baseMock.select.mockImplementation(() => ({
+                data: [], // allSessionsData のための空の配列
+                error: null,
+                eq: jest.fn().mockReturnThis(), // eq はチェーン可能にする
+                order: jest.fn().mockReturnThis(), // order もチェーン可能にする
+                range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }), // range もモック
+            }));
+        } else if (tableName === 'user_settings') {
+            baseMock.single.mockResolvedValue({ data: { mute_notifications: false }, error: null });
+        }
+        return baseMock;
+    }) as any;
+
+    mockGetToken.mockResolvedValue('mock-fcm-token');
+    mockOnMessage.mockImplementation((_, callback) => { (global as any).onMessageCallback = callback; return jest.fn(); });
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+  });
+
+  it('should render timer and controls', async () => {
+    await renderComponent();
+    expect(screen.getByText('25:00')).toBeInTheDocument();
+    expect(screen.getByText('ポモドーロ')).toBeInTheDocument();
+  });
+
+  describe('Audio on Timer Completion', () => {
+    it('should play sound on completion', async () => {
+        const { rerender } = await renderComponent();
+        // await waitFor(() => screen.getAllByRole('audio')); // No longer needed
+        // const audio = screen.getAllByRole('audio')[0] as HTMLAudioElement; // No longer needed
+        const playSpy = jest.spyOn(window.HTMLMediaElement.prototype, 'play');
+
+        mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
+        await act(async () => { rerender(<PomodoroClient />); });
+
+        expect(playSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Push Notifications', () => {
+    it('should send push notification on completion', async () => {
+        const { rerender } = await renderComponent();
+        await act(async () => { rerender(<PomodoroClient />); }); // Re-render to trigger useEffect
+        await navigator.serviceWorker.ready; // Wait for service worker to be ready
+        await waitFor(() => expect(mockGetToken).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText('通知をオフにする')).toBeInTheDocument());
+
+        mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
+        await act(async () => { rerender(<PomodoroClient />); });
+
+        await waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith('/api/notify', expect.objectContaining({ method: 'POST' }));
+        });
+    });
+  });
+});
+
+// --- API Tests ---
+describe('/api/notify', () => {
+    let mockReq: any, mockRes: any;
+    const mockSendEachForMulticast = jest.fn();
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockReq = { method: 'POST', body: { userId: 'test-user-id' } };
+        mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn(), end: jest.fn() };
+        (admin.messaging as jest.Mock).mockReturnValue({ sendEachForMulticast: mockSendEachForMulticast });
+    });
+
+    it('should send notifications to multiple tokens', async () => {
+        const mockTokens = [{ fcm_token: 'token1' }, { fcm_token: 'token2' }];
+        mockSupabase.from = jest.fn().mockReturnValue({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockResolvedValue({ data: mockTokens, error: null }) } as any);
+
+        const handler = (await import('@/pages/api/notify')).default;
+        await handler(mockReq, mockRes);
+
+        expect(mockSendEachForMulticast).toHaveBeenCalledWith({ tokens: ['token1', 'token2'], notification: expect.any(Object) });
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+    });
+});
+
+describe('/api/subscribe', () => {
+    let mockReq: any, mockRes: any;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn(), end: jest.fn() };
+        mockSupabase.from = jest.fn().mockImplementation((tableName: string) => {
+            if (tableName === 'push_subscriptions') {
+                return { insert: jest.fn().mockResolvedValue({ error: null }) };
+            }
+            return { insert: jest.fn().mockResolvedValue({ error: null }) }; // Fallback for other tables
+        });
+    });
+
+    it('should return 400 on POST if fcmToken is missing', async () => {
+        mockReq = { method: 'POST', body: { userId: 'test-user' } };
+        const handler = (await import('@/pages/api/subscribe')).default;
+        await handler(mockReq, mockRes);
+        expect(mockRes.status).toHaveBeenCalledWith(201);
+    });
+});

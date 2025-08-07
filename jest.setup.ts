@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 // Mock ResizeObserver for Recharts
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-    disconnect: jest.fn(),
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
 }));
