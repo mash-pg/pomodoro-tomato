@@ -17,6 +17,7 @@ module.exports = {
   // Jestがテストファイルと見なすファイルを指定
   testMatch: [
     '<rootDir>/tests/**/*.test.(ts|tsx)',
+    '<rootDir>/src/**/*.test.(ts|tsx)',
   ],
 
   // テストファイルの変換ルールを設定
