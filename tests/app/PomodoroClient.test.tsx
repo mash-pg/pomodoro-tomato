@@ -7,6 +7,27 @@ import { supabase } from '@/lib/supabaseClient';
 import * as firebaseMessaging from 'firebase/messaging';
 import admin from 'firebase-admin';
 import '@testing-library/jest-dom';
+// ← 一番上に置く（他の import の前）
+jest.mock('@/lib/supabaseClient', () => ({
+  supabase: {
+    auth: {
+      getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u', email: 't@e.com' } } }),
+      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+      getSession: jest.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
+    },
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      upsert: jest.fn().mockResolvedValue({ error: null }),
+      delete: jest.fn().mockResolvedValue({ error: null }),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: {}, error: null }),
+      range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+      order: jest.fn().mockReturnThis(),
+    }),
+  },
+}));
 
 // --- Mocks ---
 jest.mock('@/context/TimerContext');

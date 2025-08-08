@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Sidebar from './Sidebar';
+import Sidebar from '../../src/components/Sidebar';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { SettingsProvider } from '@/context/SettingsContext';
@@ -49,6 +49,45 @@ describe('Sidebar', () => {
 
     await waitFor(() => {
       expect(push).toHaveBeenCalledWith('/login');
+    });
+
+    expect(toggleSidebar).toHaveBeenCalled();
+  });
+
+  it('should handle account deletion', async () => {
+    const toggleSidebar = jest.fn();
+    window.confirm = jest.fn().mockReturnValue(true);
+
+    render(
+      <SettingsProvider>
+        <Sidebar isOpen={true} toggleSidebar={toggleSidebar} />
+      </SettingsProvider>
+    );
+
+    // Wait for user to be loaded
+    await screen.findByText('ログイン中: test@example.com');
+
+    const deleteButton = screen.getByRole('button', { name: /退会する/i });
+
+    // Mock the fetch call before the click event
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+
+    fireEvent.click(deleteButton);
+
+    expect(window.confirm).toHaveBeenCalledWith('本当に退会しますか？この操作は元に戻せません。');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/delete-account',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+    );
+
+
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith('/signup');
     });
 
     expect(toggleSidebar).toHaveBeenCalled();

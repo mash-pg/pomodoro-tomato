@@ -48,6 +48,30 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     setLoading(false);
   };
 
+  const handleDeleteAccount = async () => {
+    if (window.confirm('本当に退会しますか？この操作は元に戻せません。')) {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/delete-account', { 
+          method: 'POST' ,
+          credentials:'same-origin',
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        if (response.ok) {
+          router.push('/signup');
+          toggleSidebar();
+        } else {
+          console.error('Failed to delete account:', await response.json());
+        }
+      } catch (error) {
+        console.error('An error occurred during account deletion:', error);
+      }
+      setLoading(false);
+    }
+  };
+
   const handleLinkClick = (path: string) => {
     router.push(path);
     toggleSidebar(); // Close sidebar on link click
@@ -115,6 +139,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
               disabled={loading}
             >
               ログアウト
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              className="block text-red-400 hover:bg-red-700 hover:text-white py-2 px-4 rounded transition-colors duration-200 mt-4 text-left"
+              disabled={loading}
+            >
+              退会する
             </button>
           </>
         ) : (
