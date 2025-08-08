@@ -635,9 +635,29 @@ interface UserSettings {
           <div className="mt-12 text-lg text-left w-full max-w-xs">
             <h2 className="text-xl font-bold mb-4">あなたのポモドーロ統計</h2>
             <div className="p-4 rounded-lg shadow-md">
-              <p className="mb-2">今日: <span className="font-bold">{dailyStats.count}</span> ポモドーロ / <span className="font-bold">{dailyStats.time}</span> 分</p>
-              <p className="mb-2">今週: <span className="font-bold">{weeklyStats.count}</span> ポモドーロ / <span className="font-bold">{weeklyStats.time}</span> 分</p>
-              <p>今月: <span className="font-bold">{monthlyStats.count}</span> ポモドーロ / <span className="font-bold">{monthlyStats.time}</span> 分</p>
+              <p className="mb-2">今日: 
+              <span className="font-bold">
+                {dailyStats.count}
+              </span> ポモドーロ / 
+              <span className="font-bold">
+                {(dailyStats.time / 60).toFixed(1)}
+              </span>時間</p>
+              
+              <p className="mb-2">
+                今週: <span className="font-bold">
+                {weeklyStats.count}
+              </span> ポモドーロ / 
+              <span className="font-bold">
+                {(weeklyStats.time / 60).toFixed(1)}
+              </span>時間</p>
+
+              <p className="mb-2">今月: 
+              <span className="font-bold">
+                {monthlyStats.count}
+              </span> ポモドーロ / 
+              <span className="font-bold">
+                {(monthlyStats.time / 60).toFixed(1)}
+              </span>時間</p>
             </div>
           </div>
         )}
