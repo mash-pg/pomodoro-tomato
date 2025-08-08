@@ -62,8 +62,8 @@ interface UserSettings {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [isClient, setIsClient] = useState(false); // Add this state
   
-  const { theme, setTheme, darkMode, setDarkMode } = useSettings();
-
+  const { theme, setTheme, darkMode, setDarkMode } = useSettings();  
+  const [daysInThisMonth, setDaysInThisMonth] = useState(30);
   // --- Timer State (from Context) ---
   const {
     mode: currentMode,
@@ -86,7 +86,7 @@ interface UserSettings {
   const [dailyStats, setDailyStats] = useState({ count: 0, time: 0 });
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
-
+  const [daysInThisWeek, setDaysInThisWeek] = useState(1);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
   const [subscriptionStatusMessage, setSubscriptionStatusMessage] = useState('');
@@ -412,6 +412,10 @@ interface UserSettings {
     // --- Weekly Calculation (Local Timezone) ---
     const startOfWeek = new Date(now);
     const dayOfWeek = startOfWeek.getDay(); // 0 (Sun) to 6 (Sat)
+    // 週の何日目かを計算 (月曜日を1日目とする)
+    const calculatedDaysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+    // 新しい状態変数を更新
+    setDaysInThisWeek(calculatedDaysInWeek + 2);
     const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     startOfWeek.setDate(diffToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
@@ -419,11 +423,14 @@ interface UserSettings {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-
+    
     // --- Monthly Calculation (Local Timezone) ---
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
+    // 今月の日数を計算して状態に保存
+    const calculatedDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    setDaysInThisMonth(calculatedDaysInMonth);
 
     let dailyCount = 0;
     let dailyTime = 0;
@@ -650,7 +657,11 @@ interface UserSettings {
               <span className="font-bold">
                 {(weeklyStats.time / 60).toFixed(1)}
               </span>時間</p>
-
+              <p className="mb-2">
+                <span>
+                  今週の平均：{(weeklyStats.time / 60 / daysInThisWeek).toFixed(1)}時間
+                </span>
+              </p>
               <p className="mb-2">今月: 
               <span className="font-bold">
                 {monthlyStats.count}
@@ -658,6 +669,11 @@ interface UserSettings {
               <span className="font-bold">
                 {(monthlyStats.time / 60).toFixed(1)}
               </span>時間</p>
+              <p className="mb-2">
+                <span>
+                  今月の平均：{(weeklyStats.time / 60 / daysInThisMonth).toFixed(1)}時間
+                </span>
+              </p>
             </div>
           </div>
         )}
