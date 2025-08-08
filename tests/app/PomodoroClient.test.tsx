@@ -25,16 +25,19 @@ jest.mock('firebase/messaging', () => ({
   getToken: jest.fn().mockResolvedValue('mock-fcm-token'),
   onMessage: jest.fn(),
 }));
-jest.mock('firebase-admin', () => ({
-  apps: [],
-  initializeApp: jest.fn(),
-  credential: {
-    cert: jest.fn(),
-  },
-  messaging: jest.fn(() => ({
-    sendEachForMulticast: jest.fn().mockResolvedValue({ successCount: 1 }),
-  })),
-}));
+jest.mock('firebase-admin', () => {
+  const sendEachForMulticast = jest.fn().mockResolvedValue({
+    responses: [{ success: true }, { success: true }],
+    successCount: 2,
+    failureCount: 0,
+  });
+  return {
+    apps: [],
+    initializeApp: jest.fn(),
+    credential: { cert: jest.fn() },
+    messaging: jest.fn(() => ({ sendEachForMulticast })),
+  };
+});
 
 // --- Global Mocks ---
 window.HTMLMediaElement.prototype.play = jest.fn(() => Promise.resolve());
@@ -183,6 +186,12 @@ describe('/api/notify', () => {
         jest.clearAllMocks();
         mockReq = { method: 'POST', body: { userId: 'test-user-id' } };
         mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn(), end: jest.fn() };
+        // ★これを追加（返り値に responses を含める）
+        mockSendEachForMulticast.mockResolvedValue({
+          responses: [{ success: true }, { success: true }],
+          successCount: 2,
+          failureCount: 0,
+        });
         (admin.messaging as jest.Mock).mockReturnValue({ sendEachForMulticast: mockSendEachForMulticast });
     });
 

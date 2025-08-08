@@ -46,6 +46,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Send to all tokens for the user
       const response = await admin.messaging().sendEachForMulticast({ tokens, notification: messagePayload.notification });
       console.log('Successfully sent message:', response);
+
+      const tokensToDelete: string[] = [];
+      response.responses.forEach((result, index) => {
+        if (!result.success) {
+          const error = result.error;
+          if (error && (error.code === 'messaging/registration-token-not-registered' || error.code === 'messaging/invalid-registration-token')) {
+            const invalidToken = tokens[index];
+            tokensToDelete.push(invalidToken);
+            console.log(`Token ${invalidToken} is invalid. Marking for deletion.`);
+          }
+        }
+      });
+
+      if (tokensToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('push_subscriptions')
+          .delete()
+          .in('fcm_token', tokensToDelete);
+
+        if (deleteError) {
+          console.error('Failed to delete invalid tokens:', deleteError);
+        } else {
+          console.log('Successfully deleted invalid tokens.');
+        }
+      }
+
       res.status(200).json({ message: 'Notifications sent.' });
     } catch (err) {
       console.error('Error sending notifications:', err);
