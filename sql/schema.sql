@@ -68,3 +68,19 @@ $ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 9. Create tasks table
+CREATE TABLE tasks (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- 10. Enable RLS and create policies for tasks
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow individual access to tasks"
+ON tasks FOR ALL
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
