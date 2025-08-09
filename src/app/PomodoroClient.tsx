@@ -66,7 +66,6 @@ interface UserSettings {
   // --- Task Management State ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskDescription, setTaskDescription] = useState('');
-  const [todaysTasks, setTodaysTasks] = useState<{ id: number; description: string | null }[]>([]);
   
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();  
   const [daysInThisMonth, setDaysInThisMonth] = useState(30);
@@ -264,8 +263,7 @@ interface UserSettings {
     if (error) {
       console.error('Error saving task:', error);
     } else if (data) {
-      // Add the new task to the local state to update the UI
-      setTodaysTasks(prevTasks => [...prevTasks, data]);
+      // Task saved successfully, no need to update local state here as it's moved to TasksPage
     }
 
     // Reset description and close modal
@@ -413,29 +411,8 @@ interface UserSettings {
           setEnableTaskTracking(settingsData.enable_task_tracking); // Add this
         }
 
-        // Fetch today's tasks
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const { data: tasksData, error: tasksError } = await supabase
-          .from('tasks')
-          .select('id, description')
-          .eq('user_id', user.id)
-          .filter('created_at', 'gte', today.toISOString())
-          .filter('created_at', 'lt', tomorrow.toISOString())
-          .order('created_at', { ascending: true });
-
-        if (tasksError) {
-          console.error("Error fetching today's tasks:", tasksError);
-        } else {
-          setTodaysTasks(tasksData);
-        }
-
       } else {
         setAllSessions([]); // Clear sessions if no user
-        setTodaysTasks([]); // Clear tasks if no user
         // Reset settings to default if no user
         setWorkDuration(25);
         setShortBreakDuration(5);
