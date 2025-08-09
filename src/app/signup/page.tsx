@@ -21,7 +21,7 @@ export default function SignUpPage() {
     if (error) {
       setError(error.message);
     } else {
-      alert('Check your email for the verification link!');
+      alert('確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。');
       router.push('/login'); // Redirect to login page after sign up
     }
     setLoading(false);

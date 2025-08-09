@@ -1,5 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize the admin client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -20,20 +27,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { error: delErr } = await supabase
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_id', user.id);
-    if (delErr) {
-      return res.status(500).json({ error: 'Failed to delete push_subscriptions', detail: delErr.message });
+    // Use the admin client to delete the user
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+
+    if (deleteError) {
+      return res.status(500).json({ error: 'Failed to delete user', detail: deleteError.message });
     }
 
-    const { error: signOutErr } = await supabase.auth.signOut();
-    if (signOutErr) {
-      return res.status(500).json({ error: 'Failed to sign out', detail: signOutErr.message });
-    }
+    // It's good practice to sign out the user from the current session as well
+    await supabase.auth.signOut();
 
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({ message: 'Account deleted successfully' });
   } catch (e: unknown) {
     const detail = e instanceof Error ? e.message : JSON.stringify(e);
     return res.status(500).json({ error: 'Unexpected error', detail });

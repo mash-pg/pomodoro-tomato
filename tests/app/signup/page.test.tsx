@@ -1,43 +1,42 @@
-
-import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
-import SignUpPage from '@/app/signup/page';
-import { useRouter } from 'next/navigation';
-import AuthForm from '@/components/AuthForm';
-import '@testing-library/jest-dom';
-import { supabase } from '@/lib/supabaseClient';
-
-// Mock supabase
-jest.mock('@/lib/supabaseClient', () => ({
-  supabase: {
-    auth: {
-      signUp: jest.fn(),
-    },
-  },
-}));
-
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
-
-// Mock next/navigation
+// 👇 1) まず jest.mock を先に書く（import より前）
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-// Mock AuthForm component
+jest.mock('@/lib/supabaseClient', () => ({
+  supabase: {
+    auth: {
+      signUp: jest.fn(), // ← 工場内で直接 jest.fn()
+    },
+  },
+}));
+
 jest.mock('@/components/AuthForm', () => ({
   __esModule: true,
   default: jest.fn(({ isSignUp, onSubmit, loading, error }) => (
-    <form data-testid="mock-auth-form" onSubmit={(e) => { e.preventDefault(); onSubmit('test@example.com', 'password123'); }}>
+    <form
+      data-testid="mock-auth-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit('test@example.com', 'password123');
+      }}
+    >
       <h2>{isSignUp ? '新規登録' : 'ログイン'}</h2>
       {error && <p>{error}</p>}
       <button type="submit" disabled={loading}>
-        {loading ? '処理中...' : (isSignUp ? '新規登録' : 'ログイン')}
+        {loading ? '処理中...' : isSignUp ? '新規登録' : 'ログイン'}
       </button>
     </form>
   )),
 }));
 
-const mockUseRouter = useRouter as jest.Mock;
+// 👇 2) ここから import（mock の後！）
+import React from 'react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import SignUpPage from '@/app/signup/page';
+import { useRouter } from 'next/navigation';
+import '@testing-library/jest-dom';
+import { supabase } from '@/lib/supabaseClient';
 
 describe('SignUpPage', () => {
   const pushMock = jest.fn();
@@ -45,8 +44,7 @@ describe('SignUpPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseRouter.mockReturnValue({ push: pushMock });
-    alertMock.mockClear();
+    (useRouter as jest.Mock).mockReturnValue({ push: pushMock });
   });
 
   it('should render the sign up page with AuthForm', async () => {
@@ -58,7 +56,10 @@ describe('SignUpPage', () => {
   });
 
   it('should show alert and redirect to login page on successful sign up', async () => {
-    mockSupabase.auth.signUp.mockResolvedValueOnce({ data: { user: { id: 'test-user' } }, error: null });
+    (supabase.auth.signUp as jest.Mock).mockResolvedValueOnce({
+      data: { user: { id: 'test-user' } },
+      error: null,
+    });
 
     await act(async () => {
       render(<SignUpPage />);
@@ -70,13 +71,18 @@ describe('SignUpPage', () => {
     });
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith('Check your email for the verification link!');
+      expect(alertMock).toHaveBeenCalledWith(
+        '確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。'
+      );
       expect(pushMock).toHaveBeenCalledWith('/login');
     });
   });
 
   it('should display error message on sign up error', async () => {
-    mockSupabase.auth.signUp.mockResolvedValueOnce({ data: { user: null }, error: new Error('Sign Up Error') });
+    (supabase.auth.signUp as jest.Mock).mockResolvedValueOnce({
+      data: { user: null },
+      error: new Error('Sign Up Error'),
+    });
 
     await act(async () => {
       render(<SignUpPage />);
