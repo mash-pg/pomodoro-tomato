@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest"
+    "test": "jest",
+    "test:build:dev": "npm run test && npm run build && npm run dev",
+    "test:build": "npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
@@ -38,6 +40,7 @@
     "@types/react-dom": "^19.1.7",
     "@types/web-push": "^3.6.4",
     "babel-jest": "^30.0.5",
+    "concurrently": "^9.2.0",
     "dotenv": "^17.2.1",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",

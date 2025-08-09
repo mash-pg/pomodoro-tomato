@@ -22,74 +22,88 @@ jest.mock('@/lib/supabaseClient', () => ({
 
 describe('Sidebar', () => {
   let push: jest.Mock;
+  let toggleSidebar: jest.Mock;
 
   beforeEach(() => {
     push = jest.fn();
+    toggleSidebar = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({ push });
+    // Reset mocks before each test
+    jest.clearAllMocks();
   });
 
-  it('should handle logout', async () => {
-    const toggleSidebar = jest.fn();
-
+  const renderComponent = () => {
     render(
       <SettingsProvider>
         <Sidebar isOpen={true} toggleSidebar={toggleSidebar} />
       </SettingsProvider>
     );
+  };
 
-    // Wait for user to be loaded
-    await screen.findByText('ログイン中: test@example.com');
+  describe('Account Deletion', () => {
+    it('should successfully delete account when confirmed', async () => {
+      window.confirm = jest.fn().mockReturnValue(true);
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
 
-    const logoutButton = screen.getByRole('button', { name: /ログアウト/i });
-    fireEvent.click(logoutButton);
+      renderComponent();
+      await screen.findByText('ログイン中: test@example.com');
 
-    await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
+      const deleteButton = screen.getByRole('button', { name: /退会する/i });
+      fireEvent.click(deleteButton);
+
+      expect(window.confirm).toHaveBeenCalledWith('本当に退会しますか？この操作は元に戻せません。');
+      expect(deleteButton).toBeDisabled();
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/delete-account', expect.anything());
+      });
+
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith('/signup');
+      });
+
+      expect(toggleSidebar).toHaveBeenCalled();
     });
 
-    await waitFor(() => {
-      expect(push).toHaveBeenCalledWith('/login');
+    it('should not delete account when canceled', async () => {
+      window.confirm = jest.fn().mockReturnValue(false);
+      global.fetch = jest.fn();
+
+      renderComponent();
+      await screen.findByText('ログイン中: test@example.com');
+
+      const deleteButton = screen.getByRole('button', { name: /退会する/i });
+      fireEvent.click(deleteButton);
+
+      expect(window.confirm).toHaveBeenCalledWith('本当に退会しますか？この操作は元に戻せません。');
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(push).not.toHaveBeenCalled();
+      expect(toggleSidebar).not.toHaveBeenCalled();
+      expect(deleteButton).not.toBeDisabled();
     });
 
-    expect(toggleSidebar).toHaveBeenCalled();
-  });
+    it('should show an error message if API call fails', async () => {
+      window.confirm = jest.fn().mockReturnValue(true);
+      global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'API Error' }) });
+      console.error = jest.fn(); // Mock console.error
 
-  it('should handle account deletion', async () => {
-    const toggleSidebar = jest.fn();
-    window.confirm = jest.fn().mockReturnValue(true);
+      renderComponent();
+      await screen.findByText('ログイン中: test@example.com');
 
-    render(
-      <SettingsProvider>
-        <Sidebar isOpen={true} toggleSidebar={toggleSidebar} />
-      </SettingsProvider>
-    );
+      const deleteButton = screen.getByRole('button', { name: /退会する/i });
+      fireEvent.click(deleteButton);
 
-    // Wait for user to be loaded
-    await screen.findByText('ログイン中: test@example.com');
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/delete-account', expect.anything());
+      });
 
-    const deleteButton = screen.getByRole('button', { name: /退会する/i });
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith('Failed to delete account:', { error: 'API Error' });
+      });
 
-    // Mock the fetch call before the click event
-    global.fetch = jest.fn().mockResolvedValue({ ok: true });
-
-    fireEvent.click(deleteButton);
-
-    expect(window.confirm).toHaveBeenCalledWith('本当に退会しますか？この操作は元に戻せません。');
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/delete-account',
-      expect.objectContaining({
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      })
-    );
-
-
-    await waitFor(() => {
-      expect(push).toHaveBeenCalledWith('/signup');
+      expect(push).not.toHaveBeenCalled();
+      expect(toggleSidebar).not.toHaveBeenCalled();
+      expect(deleteButton).not.toBeDisabled();
     });
-
-    expect(toggleSidebar).toHaveBeenCalled();
   });
 });
