@@ -105,71 +105,80 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
           </svg>
         </button>
       </div>
-      <nav className="flex flex-col p-4">
-        {user ? (
-          <>
-            <span className="text-gray-300 text-sm mb-4">ログイン中: {user.email}</span>
-            <button
-              onClick={() => handleLinkClick('/')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              タイマー
-            </button>
-            <button
-              onClick={() => handleLinkClick('/stats')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              統計
-            </button>
-            <button
-              onClick={() => handleLinkClick('/calendar')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              カレンダー
-            </button>
-            <button
-              onClick={() => handleLinkClick('/weekly-time-calendar')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              週時間カレンダー
-            </button>
-            <button
-              onClick={handleLogout}
-              className="block text-white bg-red-600 hover:bg-red-700 py-2 px-4 rounded transition-colors duration-200 text-left"
-              disabled={loading}
-            >
-              ログアウト
-            </button>
-            <button
-              onClick={handleDeleteAccount}
-              className="block text-red-400 hover:bg-red-700 hover:text-white py-2 px-4 rounded transition-colors duration-200 mt-4 text-left"
-              disabled={loading}
-            >
-              退会する
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => handleLinkClick('/login')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              ログイン
-            </button>
-            <button
-              onClick={() => handleLinkClick('/signup')}
-              className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
-            >
-              新規登録
-            </button>
-          </>
-        )}
-        <button
-          onClick={handleOpenSettings}
-          className="block text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mt-4 text-left"
-        >
-          設定
-        </button>
+      <nav className="flex flex-col p-4 flex-grow justify-between">
+        <div> {/* Top section for navigation links */}
+          {user ? (
+            <>
+              <span className="text-gray-300 text-sm mb-4">ログイン中: {user.email}</span>
+              <button
+                onClick={() => handleLinkClick('/')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                タイマー
+              </button>
+              <button
+                onClick={() => handleLinkClick('/stats')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                統計
+              </button>
+              <button
+                onClick={() => handleLinkClick('/calendar')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                カレンダー
+              </button>
+              <button
+                onClick={() => handleLinkClick('/weekly-time-calendar')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                週時間カレンダー
+              </button>
+              <button
+                onClick={handleLogout}
+                className="block w-full text-white bg-red-600 hover:bg-red-700 py-2 px-4 rounded transition-colors duration-200 text-left mt-4"
+                disabled={loading}
+              >
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleLinkClick('/login')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                ログイン
+              </button>
+              <button
+                onClick={() => handleLinkClick('/signup')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                新規登録
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-col"> {/* Bottom section for settings and delete account */}
+          <button
+            onClick={handleOpenSettings}
+            className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 text-left"
+          >
+            設定
+          </button>
+          {user && (
+            <div className="mt-auto"> {/* Push delete button to the very bottom */}
+              <button
+                onClick={handleDeleteAccount}
+                className="block w-full text-red-400 hover:bg-red-700 hover:text-white py-2 px-4 rounded transition-colors duration-200 mt-16 text-left"
+                disabled={loading}
+              >
+                退会する
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
     </div>
   );
