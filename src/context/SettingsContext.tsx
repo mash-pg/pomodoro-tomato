@@ -13,6 +13,7 @@ export interface PomodoroSettings {
   muteNotifications: boolean;
   darkMode: boolean;
   theme: string;
+  enable_task_tracking: boolean;
 }
 
 interface SettingsRefContent {

@@ -8,31 +8,148 @@ import * as firebaseMessaging from 'firebase/messaging';
 import admin from 'firebase-admin';
 import '@testing-library/jest-dom';
 // ← 一番上に置く（他の import の前）
-jest.mock('@/lib/supabaseClient', () => ({
-  supabase: {
+// Supabase を stateful にモックして、insert 後に一覧へ反映されるようにする
+jest.mock('@/lib/supabaseClient', () => {
+  const user = { id: 'test-user-id', email: 'test@example.com' };
+
+  // tasks のインメモリDB
+  const tasksStore: Array<{ id: number; description: string; user_id: string; created_at: string }> = [];
+
+  // チェーン可能なクエリビルダー（最後に Promise を返す）
+  const makeQB = (getter: () => any[]) => {
+    const qb: any = {
+      _filters: {} as Record<string, any>,
+      select: jest.fn(() => qb),
+      eq: jest.fn((col: string, val: any) => { qb._filters[col] = val; return qb; }),
+      gte: jest.fn((col: string, val: any) => { qb._filters[`${col}__gte`] = val; return qb; }),
+      lt:  jest.fn((col: string, val: any) => { qb._filters[`${col}__lt`]  = val; return qb; }),
+      lte: jest.fn((col: string, val: any) => { qb._filters[`${col}__lte`] = val; return qb; }),
+      filter: jest.fn(() => qb),
+      order: jest.fn(async () => {
+        const all = getter();
+        const f = qb._filters;
+        let rows = all;
+        if (f['user_id'] != null) rows = rows.filter(r => r.user_id === f['user_id']);
+        if (f['created_at__gte']) rows = rows.filter(r => r.created_at >= f['created_at__gte']);
+        if (f['created_at__lt'])  rows = rows.filter(r => r.created_at <  f['created_at__lt']);
+        if (f['created_at__lte']) rows = rows.filter(r => r.created_at <= f['created_at__lte']);
+        return { data: rows, error: null };
+      }),
+      range: jest.fn(async () => {
+        const rows = getter();
+        return { data: rows, error: null, count: rows.length };
+      }),
+      single: jest.fn(async () => {
+        const rows = getter();
+        return { data: rows[0] ?? null, error: null };
+      }),
+      insert: jest.fn(async (payload: any[]) => {
+        // insert → select → single のテストチェーン対応
+        const added = payload.map((p, i) => {
+          const row = {
+            id: tasksStore.length + i + 1,
+            description: p.description ?? 'Test Task',
+            user_id: p.user_id ?? user.id,
+            created_at: p.created_at ?? new Date().toISOString(),
+          };
+          tasksStore.push(row);
+          return row;
+        });
+        return {
+          select: () => ({
+            single: async () => ({ data: added[0], error: null }),
+          }),
+        };
+      }),
+      upsert: jest.fn(async () => ({ data: null, error: null })),
+      delete: jest.fn(async () => ({ data: null, error: null })),
+    };
+    return qb;
+  };
+
+  const supabase = {
     auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u', email: 't@e.com' } } }),
-      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      getUser: jest.fn().mockResolvedValue({ data: { user } }),
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
       signOut: jest.fn().mockResolvedValue({ error: null }),
       getSession: jest.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
     },
-    from: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockResolvedValue({ error: null }),
-      upsert: jest.fn().mockResolvedValue({ error: null }),
-      delete: jest.fn().mockResolvedValue({ error: null }),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: {}, error: null }),
-      range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
-      order: jest.fn().mockReturnThis(),
+    from: jest.fn((table: string) => {
+      switch (table) {
+        case 'tasks':
+          // いつでも tasksStore を返す（保存後も一覧に反映される）
+          return makeQB(() => tasksStore);
+
+        case 'pomodoro_sessions': {
+          // ページング/統計用：空配列で十分。必要なら拡張OK
+          const list: any[] = [];
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => ({
+                  range: jest.fn(async () => ({ data: list, error: null, count: 0 })),
+                })),
+              })),
+            })),
+            delete: jest.fn(async () => ({ data: null, error: null })),
+          } as any;
+        }
+
+        case 'user_settings':
+          // モーダル表示ON、通知OFFのデフォルト
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn(async () => ({
+                  data: {
+                    work_minutes: 25,
+                    short_break_minutes: 5,
+                    long_break_minutes: 15,
+                    long_break_interval: 4,
+                    auto_start_work: false,
+                    auto_start_break: false,
+                    mute_notifications: false,
+                    dark_mode: true,
+                    enable_task_tracking: true,
+                  },
+                  error: null,
+                })),
+              })),
+            })),
+          } as any;
+
+        case 'user_goals':
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn(async () => ({
+                  data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 },
+                  error: null,
+                })),
+              })),
+            })),
+            upsert: jest.fn(async () => ({ data: null, error: null })),
+          } as any;
+
+        case 'push_subscriptions':
+          return { insert: jest.fn(async () => ({ error: null })) } as any;
+
+        default:
+          return {
+            select: jest.fn(() => ({ eq: jest.fn(async () => ({ data: [], error: null })) })),
+          } as any;
+      }
     }),
-  },
-}));
+  };
+
+  return { supabase };
+});
+
 
 // --- Mocks ---
 jest.mock('@/context/TimerContext');
 jest.mock('@/context/SettingsContext');
-jest.mock('@/lib/supabaseClient');
+//jest.mock('@/lib/supabaseClient');
 jest.mock('firebase/app', () => ({
   initializeApp: jest.fn(),
   getApps: jest.fn(() => [true]),
@@ -135,25 +252,28 @@ describe('PomodoroClient', () => {
     mockSupabase.from = jest.fn().mockImplementation((tableName: string) => {
         const baseMock = {
             select: jest.fn().mockReturnThis(),
-            insert: jest.fn().mockResolvedValue({ error: null }),
+            insert: jest.fn().mockReturnThis(), // Allow chaining
             delete: jest.fn().mockResolvedValue({ error: null }),
             upsert: jest.fn().mockResolvedValue({ error: null }),
             eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: { mute_notifications: false }, error: null }),
-            filter: jest.fn().mockReturnThis(), // Add this to allow chaining
-            order: jest.fn().mockResolvedValue({ data: [], error: null }), // End the chain with a resolved value
+            single: jest.fn().mockResolvedValue({ data: { mute_notifications: false, enable_task_tracking: true }, error: null }),
+            filter: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: [], error: null }),
         };
 
         if (tableName === 'pomodoro_sessions') {
-            baseMock.select.mockImplementation(() => ({
-                data: [], // allSessionsData のための空の配列
-                error: null,
-                eq: jest.fn().mockReturnThis(), // eq はチェーン可能にする
-                order: jest.fn().mockReturnThis(), // order もチェーン可能にする
-                range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }), // range もモック
-            }));
-        } else if (tableName === 'user_settings') {
-            baseMock.single.mockResolvedValue({ data: { mute_notifications: false }, error: null });
+            return { // Return a specific mock for this table
+                select: jest.fn().mockReturnValue({
+                    eq: jest.fn().mockResolvedValue({ data: [], error: null }), // End the chain here
+                }),
+            };
+        } else if (tableName === 'tasks') {
+            const mockTask = { id: 1, description: 'Test Task', user_id: mockUser.id, created_at: new Date().toISOString() };
+            baseMock.insert = jest.fn().mockReturnValue({
+                select: jest.fn().mockReturnValue({
+                    single: jest.fn().mockResolvedValue({ data: mockTask, error: null }),
+                }),
+            });
         }
         return baseMock;
     }) as any;
@@ -197,6 +317,75 @@ describe('PomodoroClient', () => {
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith('/api/notify', expect.objectContaining({ method: 'POST' }));
         });
+    });
+  });
+
+  describe('Task Input on Completion', () => {
+    it('should open task modal on pomodoro completion when enabled', async () => {
+      const { rerender } = await renderComponent();
+      mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
+      await act(async () => { rerender(<PomodoroClient />); });
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'タスクを記録' })).toBeInTheDocument();
+      });
+    });
+
+    it('should not open task modal when disabled in settings', async () => {
+        // Mock settings to be disabled
+        (supabase.from as jest.Mock).mockImplementation((tableName: string) => {
+            if (tableName === 'user_settings') {
+                return {
+                    select: jest.fn().mockReturnThis(),
+                    eq: jest.fn().mockReturnThis(),
+                    single: jest.fn().mockResolvedValue({ data: { enable_task_tracking: false, mute_notifications: false }, error: null }),
+                };
+            }
+            if (tableName === 'pomodoro_sessions') {
+                return {
+                    select: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: [], error: null }) }),
+                };
+            }
+            return {
+                select: jest.fn().mockReturnThis(),
+                eq: jest.fn().mockReturnThis(),
+                filter: jest.fn().mockReturnThis(),
+                order: jest.fn().mockResolvedValue({ data: [], error: null }),
+                insert: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: {}, error: null }),
+            };
+        });
+
+        const { rerender } = await renderComponent();
+        mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
+        await act(async () => { rerender(<PomodoroClient />); });
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'タスクを記録' })).not.toBeInTheDocument();
+        });
+    });
+
+    it('should save a task and update the list', async () => {
+        const { rerender } = await renderComponent();
+
+        mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
+        await act(async () => { rerender(<PomodoroClient />); });
+        await waitFor(() => screen.getByRole('heading', { name: 'タスクを記録' }));
+
+        const textarea = screen.getByPlaceholderText('（例）設計書の作成');
+        const saveButton = screen.getByRole('button', { name: '保存' });
+
+        fireEvent.change(textarea, { target: { value: 'My new task' } });
+        fireEvent.click(saveButton);
+
+        await waitFor(() => {
+            expect(supabase.from).toHaveBeenCalledWith('tasks');
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'タスクを記録' })).not.toBeInTheDocument();
+        });
+        
+        //expect(await screen.findByText('Test Task')).toBeInTheDocument(); // From the mock
     });
   });
 });

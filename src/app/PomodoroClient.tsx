@@ -60,6 +60,7 @@ interface UserSettings {
   const [autoStartWork, setAutoStartWork] = useState(false);
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [muteNotifications, setMuteNotifications] = useState(false);
+  const [enableTaskTracking, setEnableTaskTracking] = useState(true); // Add this
   const [isClient, setIsClient] = useState(false); // Add this state
 
   // --- Task Management State ---
@@ -297,6 +298,7 @@ interface UserSettings {
     setMuteNotifications(settings.muteNotifications);
     setDarkMode(settings.darkMode);
     setTheme(settings.theme);
+    setEnableTaskTracking(settings.enable_task_tracking);
 
     // Save settings to localStorage for persistence across reloads
     try {
@@ -319,6 +321,7 @@ interface UserSettings {
           auto_start_break: settings.autoStartBreak,
           mute_notifications: settings.muteNotifications,
           dark_mode: settings.darkMode,
+          enable_task_tracking: settings.enable_task_tracking,
         });
       if (error) {
         
@@ -339,10 +342,11 @@ interface UserSettings {
         muteNotifications,
         darkMode,
         theme,
+        enable_task_tracking: enableTaskTracking,
       },
       onSave: handleSaveSettings,
     };
-  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, theme, handleSaveSettings, settingsRef]);
+  }, [workDuration, shortBreakDuration, longBreakDuration, longBreakInterval, autoStartWork, autoStartBreak, muteNotifications, darkMode, theme, handleSaveSettings, settingsRef, enableTaskTracking]);
 
   // --- Load Initial Settings from LocalStorage ---
   useEffect(() => {
@@ -391,7 +395,7 @@ interface UserSettings {
         // Fetch settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('user_settings')
-          .select('work_minutes, short_break_minutes, long_break_minutes, long_break_interval, auto_start_work, auto_start_break, mute_notifications, dark_mode')
+          .select('work_minutes, short_break_minutes, long_break_minutes, long_break_interval, auto_start_work, auto_start_break, mute_notifications, dark_mode, enable_task_tracking') // Add enable_task_tracking
           .eq('user_id', user.id)
           .single();
 
@@ -406,6 +410,7 @@ interface UserSettings {
           setAutoStartBreak(settingsData.auto_start_break);
           setMuteNotifications(settingsData.mute_notifications);
           setDarkMode(settingsData.dark_mode);
+          setEnableTaskTracking(settingsData.enable_task_tracking); // Add this
         }
 
         // Fetch today's tasks
@@ -437,8 +442,9 @@ interface UserSettings {
         setLongBreakDuration(15);
         setAutoStartWork(false);
         setAutoStartBreak(false);
-        setMuteNotifications(false);
+                setMuteNotifications(false);
         setDarkMode(true);
+        setEnableTaskTracking(true); // Reset on logout
       }
     };
 
@@ -527,8 +533,8 @@ interface UserSettings {
 
     // Only play sound if completionCount has increased
     if (completionCount > prevCompletionCountRef.current) {
-      // Open task modal only after a pomodoro session
-      if (lastCompletedMode === 'pomodoro') {
+      // Open task modal only after a pomodoro session and if tracking is enabled
+      if (lastCompletedMode === 'pomodoro' && enableTaskTracking) {
         setIsTaskModalOpen(true);
       }
       
@@ -756,21 +762,6 @@ interface UserSettings {
           </>
         )}
 
-        {/* Task List Display */}
-        {user && todaysTasks.length > 0 && (
-          <div className="mt-8 w-full max-w-xs text-left">
-            <h2 className="text-xl font-bold mb-4">今日の完了タスク</h2>
-            <div className="p-4 rounded-lg shadow-md bg-white dark:bg-gray-800">
-              <ul className="space-y-2">
-                {todaysTasks.map((task) => (
-                  <li key={task.id} className="text-gray-800 dark:text-gray-200">
-                    {task.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
 
         {/* Task Input Modal */}
         {isTaskModalOpen && (

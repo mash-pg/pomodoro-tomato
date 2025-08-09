@@ -84,3 +84,7 @@ CREATE POLICY "Allow individual access to tasks"
 ON tasks FOR ALL
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
+
+-- 11. Add enable_task_tracking to user_settings
+ALTER TABLE public.user_settings
+ADD COLUMN IF NOT EXISTS enable_task_tracking BOOLEAN NOT NULL DEFAULT true;

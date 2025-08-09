@@ -36,6 +36,7 @@ export default function SettingsModal({
   const [muteNotifications, setMuteNotifications] = useState(initialSettings.muteNotifications);
   const [darkMode, setDarkMode] = useState(initialSettings.darkMode);
   const [theme, setTheme] = useState(initialSettings.theme);
+  const [enableTaskTracking, setEnableTaskTracking] = useState(initialSettings.enable_task_tracking);
 
   // Update local state when initialSettings prop changes
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function SettingsModal({
     setMuteNotifications(initialSettings.muteNotifications);
     setDarkMode(initialSettings.darkMode);
     setTheme(initialSettings.theme);
+    setEnableTaskTracking(initialSettings.enable_task_tracking);
   }, [initialSettings]);
 
   const handleSave = () => {
@@ -61,6 +63,7 @@ export default function SettingsModal({
       muteNotifications,
       darkMode,
       theme,
+      enable_task_tracking: enableTaskTracking,
     };
 
     // Update global state
@@ -205,6 +208,16 @@ export default function SettingsModal({
               type="checkbox"
               checked={darkMode}
               onChange={(e) => setDarkMode(e.target.checked)}
+              className="h-5 w-5 text-blue-600 rounded border-gray-600 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="enable-task-tracking" className="text-sm font-medium text-gray-400">タスクを有効にする</label>
+            <input
+              id="enable-task-tracking"
+              type="checkbox"
+              checked={enableTaskTracking}
+              onChange={(e) => setEnableTaskTracking(e.target.checked)}
               className="h-5 w-5 text-blue-600 rounded border-gray-600 focus:ring-blue-500"
             />
           </div>
