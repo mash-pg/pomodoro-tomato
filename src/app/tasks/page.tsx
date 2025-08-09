@@ -18,6 +18,8 @@ export default function TasksPage() {
   const [weeklyTasks, setWeeklyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editedDescription, setEditedDescription] = useState<string>('');
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -86,31 +88,57 @@ export default function TasksPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  const handleDeleteTask = async (taskId: number) => {
-    try {
-      const response = await fetch('/api/delete-task', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ task_id: taskId }),
-      });
+// 置き換え：handleDeleteTask
+const handleDeleteTask = async (taskId: number) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete task');
-      }
+    const response = await fetch('/api/delete-task', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify({ task_id: taskId }),
+    });
 
-      // Update the state to remove the deleted task
-      setTodaysTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-      // Optionally, you might want to refetch weekly tasks or update them as well
-      // setWeeklyTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Failed to delete task');
 
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      setError((err as Error).message || 'タスクの削除に失敗しました。');
-    }
-  };
+    setTodaysTasks(prev => prev.filter(t => t.id !== taskId));
+    setWeeklyTasks(prev => prev.filter(t => t.id !== taskId)); // ← 週一覧も同期
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    setError((err as Error).message || 'タスクの削除に失敗しました。');
+  }
+};
+
+// 置き換え：handleUpdateTask
+const handleUpdateTask = async (taskId: number, newDescription: string) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch('/api/update-task', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify({ task_id: taskId, description: newDescription }),
+    });
+
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Failed to update task');
+
+    const updated = json.data as Task; // サーバからの確定値
+    setTodaysTasks(prev => prev.map(t => (t.id === taskId ? { ...t, description: updated.description } : t)));
+    setWeeklyTasks(prev => prev.map(t => (t.id === taskId ? { ...t, description: updated.description } : t)));
+    setEditingTaskId(null);
+  } catch (err) {
+    console.error('Error updating task:', err);
+    setError((err as Error).message || 'タスクの更新に失敗しました。');
+  }
+};
 
   const groupTasksByDate = (tasks: Task[]) => {
     const grouped: { [key: string]: Task[] } = {};
@@ -155,8 +183,54 @@ export default function TasksPage() {
                       {todaysTasks.map(task => (
                         <tr key={task.id} className="border-t border-gray-600">
                           <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">{new Date(task.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">{task.description}</td>
-                          <td className="py-2 px-4 text-center">
+                          <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">
+                            {editingTaskId === task.id ? (
+                              <input
+                                type="text"
+                                value={editedDescription}
+                                onChange={(e) => setEditedDescription(e.target.value)}
+                                className="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
+                              />
+                            ) : (
+                              task.description
+                            )}
+                          </td>
+                          <td className="py-2 px-4 text-center flex justify-center items-center space-x-2">
+                            {editingTaskId === task.id ? (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateTask(task.id, editedDescription)}
+                                  className="p-1 rounded-full bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                                  aria-label="Save task"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setEditingTaskId(null)}
+                                  className="p-1 rounded-full bg-gray-600 hover:bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+                                  aria-label="Cancel edit"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditingTaskId(task.id);
+                                  setEditedDescription(task.description || '');
+                                }}
+                                className="p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                aria-label="Edit task"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                                </svg>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteTask(task.id)}
                               className="p-1 rounded-full bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
@@ -176,7 +250,7 @@ export default function TasksPage() {
             </div>
 
             {/* Weekly Tasks */}
-            <WeeklyTaskCalendar user={user} tasks={weeklyTasks} onDeleteTask={handleDeleteTask} />
+            <WeeklyTaskCalendar user={user} tasks={weeklyTasks} onDeleteTask={handleDeleteTask} onUpdateTask={handleUpdateTask} />
           </div>
         )}
       </div>
