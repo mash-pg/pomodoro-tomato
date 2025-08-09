@@ -2,7 +2,7 @@
 setlocal EnableExtensions
 
 REM ===== settings =====
-set "HOST=127.0.0.1"
+set "HOST=localhost"
 set "PORT=3000"
 set "OPEN_PATH=/"
 set "MAX_WAIT=600"
@@ -12,10 +12,10 @@ title Next.js Dev Crash Catcher
 color 0a
 cls
 
-echo [1/4] Kill existing %HOST%:%PORT% (if any)...
+echo [1/3] Kill existing %HOST%:%PORT% (if any)...
 for /f "tokens=5" %%p in ('netstat -ano ^| find ":%PORT%" ^| find "LISTENING"') do taskkill /PID %%p /F >nul 2>&1
 
-echo [2/4] Run tests (foreground)...
+echo [2/3] Run tests (foreground)...
 call npm run test
 if errorlevel 1 (
   echo Tests failed. See output above.
@@ -23,15 +23,15 @@ if errorlevel 1 (
   goto END
 )
 
-echo [3/4] Build (foreground)...
-call npm run build
-if errorlevel 1 (
-  echo Build failed. See output above.
-  pause
-  goto END
-)
+@REM echo [3/4] Build (foreground)...
+@REM call npm run build
+@REM if errorlevel 1 (
+@REM   echo Build failed. See output above.
+@REM   pause
+@REM   goto END
+@REM )
 
-echo [4/4] Launch background opener and start dev (foreground)...
+echo [3/3] Launch background opener and start dev (foreground)...
 start "" powershell -NoProfile -WindowStyle Hidden -Command ^
   "$h='%HOST%'; $p=%PORT%; $u='http://%HOST%:%PORT%%OPEN_PATH%';" ^
   "for($i=0; $i -lt %MAX_WAIT%; $i++) {" ^
