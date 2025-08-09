@@ -69,7 +69,7 @@ export default function TasksPage() {
 
         if (weeklyTasksError) {
           console.error("Error fetching weekly tasks:", weeklyTasksError);
-          setError("今週のタスクの読み込みに失敗しました。");
+          setError(prev => prev ?? "今週のタスクの読み込みに失敗しました。");
         } else {
           setWeeklyTasks(weeklyTasksData || []);
         }
@@ -102,20 +102,25 @@ const handleDeleteTask = async (taskId: number) => {
       body: JSON.stringify({ task_id: taskId }),
     });
 
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.error || 'Failed to delete task');
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error('Delete API error payload:', json);
+      throw new Error(json?.error || json?.detail || 'Failed to delete task');
+    }
 
     setTodaysTasks(prev => prev.filter(t => t.id !== taskId));
-    setWeeklyTasks(prev => prev.filter(t => t.id !== taskId)); // ← 週一覧も同期
+    setWeeklyTasks(prev => prev.filter(t => t.id !== taskId));
   } catch (err) {
     console.error('Error deleting task:', err);
-    setError((err as Error).message || 'タスクの削除に失敗しました。');
+    setError('タスクの削除に失敗しました。');
   }
 };
 
-// 置き換え：handleUpdateTask
+  // 置き換え：handleUpdateTask
+  // 更新処理
 const handleUpdateTask = async (taskId: number, newDescription: string) => {
   try {
+    // ここでトークン取得
     const { data: { session } } = await supabase.auth.getSession();
 
     const response = await fetch('/api/update-task', {
@@ -127,18 +132,32 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
       body: JSON.stringify({ task_id: taskId, description: newDescription }),
     });
 
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.error || 'Failed to update task');
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      // サーバからのエラーをコンソールで詳細確認
+      console.error('Update API error payload:', json);
+      throw new Error(json?.error || json?.detail || 'Failed to update task');
+    }
 
-    const updated = json.data as Task; // サーバからの確定値
-    setTodaysTasks(prev => prev.map(t => (t.id === taskId ? { ...t, description: updated.description } : t)));
-    setWeeklyTasks(prev => prev.map(t => (t.id === taskId ? { ...t, description: updated.description } : t)));
-    setEditingTaskId(null);
+    // API が data.description を返さない場合に備えてフォールバック
+    const updatedDesc =
+      (json && json.data && typeof json.data.description === 'string')
+        ? json.data.description
+        : newDescription;
+
+    setTodaysTasks(prev =>
+      prev.map(t => (t.id === taskId ? { ...t, description: updatedDesc } : t))
+    );
+    setWeeklyTasks(prev =>
+      prev.map(t => (t.id === taskId ? { ...t, description: updatedDesc } : t))
+    );
+    setEditingTaskId?.(null);
   } catch (err) {
     console.error('Error updating task:', err);
-    setError((err as Error).message || 'タスクの更新に失敗しました。');
+    setError('タスクの更新に失敗しました。');
   }
 };
+
 
   const groupTasksByDate = (tasks: Task[]) => {
     const grouped: { [key: string]: Task[] } = {};
