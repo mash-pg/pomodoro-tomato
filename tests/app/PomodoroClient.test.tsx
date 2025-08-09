@@ -140,7 +140,10 @@ describe('PomodoroClient', () => {
             upsert: jest.fn().mockResolvedValue({ error: null }),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({ data: { mute_notifications: false }, error: null }),
+            filter: jest.fn().mockReturnThis(), // Add this to allow chaining
+            order: jest.fn().mockResolvedValue({ data: [], error: null }), // End the chain with a resolved value
         };
+
         if (tableName === 'pomodoro_sessions') {
             baseMock.select.mockImplementation(() => ({
                 data: [], // allSessionsData のための空の配列

@@ -61,6 +61,11 @@ interface UserSettings {
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [isClient, setIsClient] = useState(false); // Add this state
+
+  // --- Task Management State ---
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskDescription, setTaskDescription] = useState('');
+  const [todaysTasks, setTodaysTasks] = useState<{ id: number; description: string | null }[]>([]);
   
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();  
   const [daysInThisMonth, setDaysInThisMonth] = useState(30);
@@ -242,6 +247,31 @@ interface UserSettings {
     }
   };
 
+  // --- Task Management ---
+  const handleSaveTask = async () => {
+    if (!user) return;
+
+    // If the input is empty, save it as a specific string
+    const descriptionToSave = taskDescription.trim() === '' ? '（記録なし）' : taskDescription;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([{ user_id: user.id, description: descriptionToSave }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving task:', error);
+    } else if (data) {
+      // Add the new task to the local state to update the UI
+      setTodaysTasks(prevTasks => [...prevTasks, data]);
+    }
+
+    // Reset description and close modal
+    setTaskDescription('');
+    setIsTaskModalOpen(false);
+  };
+
   // --- Helper to get current duration based on mode ---
   const getDuration = useCallback((mode: TimerMode) => {
     switch (mode) {
@@ -377,8 +407,30 @@ interface UserSettings {
           setMuteNotifications(settingsData.mute_notifications);
           setDarkMode(settingsData.dark_mode);
         }
+
+        // Fetch today's tasks
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const { data: tasksData, error: tasksError } = await supabase
+          .from('tasks')
+          .select('id, description')
+          .eq('user_id', user.id)
+          .filter('created_at', 'gte', today.toISOString())
+          .filter('created_at', 'lt', tomorrow.toISOString())
+          .order('created_at', { ascending: true });
+
+        if (tasksError) {
+          console.error("Error fetching today's tasks:", tasksError);
+        } else {
+          setTodaysTasks(tasksData);
+        }
+
       } else {
         setAllSessions([]); // Clear sessions if no user
+        setTodaysTasks([]); // Clear tasks if no user
         // Reset settings to default if no user
         setWorkDuration(25);
         setShortBreakDuration(5);
@@ -475,6 +527,10 @@ interface UserSettings {
 
     // Only play sound if completionCount has increased
     if (completionCount > prevCompletionCountRef.current) {
+      // Open task modal only after a pomodoro session
+      if (lastCompletedMode === 'pomodoro') {
+        setIsTaskModalOpen(true);
+      }
       
       if (!muteNotifications) {
         // Stop all sounds before playing the new one
@@ -640,7 +696,6 @@ interface UserSettings {
         {/* Statistics Display */}
         {user && (
           <div className="mt-12 text-lg text-left w-full max-w-xs">
-            <h2 className="text-xl font-bold mb-4">あなたのポモドーロ統計</h2>
             <div className="p-4 rounded-lg shadow-md">
               <p className="mb-2">今日: 
               <span className="font-bold">
@@ -699,6 +754,56 @@ interface UserSettings {
             <audio ref={shortBreakEndAudioRef} src="/sounds/short_break_end.mp3" preload="auto" />
             <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
           </>
+        )}
+
+        {/* Task List Display */}
+        {user && todaysTasks.length > 0 && (
+          <div className="mt-8 w-full max-w-xs text-left">
+            <h2 className="text-xl font-bold mb-4">今日の完了タスク</h2>
+            <div className="p-4 rounded-lg shadow-md bg-white dark:bg-gray-800">
+              <ul className="space-y-2">
+                {todaysTasks.map((task) => (
+                  <li key={task.id} className="text-gray-800 dark:text-gray-200">
+                    {task.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Task Input Modal */}
+        {isTaskModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">タスクを記録</h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">完了したタスクを入力してください。空のままでも記録できます。</p>
+              <textarea
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="（例）設計書の作成"
+                rows={4}
+              />
+              <div className="flex justify-end gap-4">
+                <button 
+                  onClick={() => {
+                    setTaskDescription(''); // Clear description on cancel
+                    setIsTaskModalOpen(false);
+                  }} 
+                  className="py-2 px-5 rounded-lg font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  あとで
+                </button>
+                <button 
+                  onClick={handleSaveTask} 
+                  className="py-2 px-5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>
