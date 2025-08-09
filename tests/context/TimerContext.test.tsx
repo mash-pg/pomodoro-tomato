@@ -295,4 +295,50 @@ describe('TimerContext', () => {
       expect(pomodoroTimerValues.pomodoroCount).toBe(1);
     });
   });
+
+  it('should NOT auto-start break if disabled', async () => {
+    settings.workDuration = 0;
+    settings.autoStartBreak = false; // Explicitly set to false
+    mockUseSettings.mockReturnValue(settings);
+    const { getByTestId } = await renderWithProviders();
+
+    act(() => {
+        timerHookValue.startTimer();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await waitFor(() => {
+      const newTimerValues = JSON.parse(getByTestId('timer-values').textContent || '{}');
+      expect(newTimerValues.mode).toBe('shortBreak');
+      expect(newTimerValues.isActive).toBe(false); // Should not be active
+    });
+  });
+
+  it('should NOT auto-start work if disabled', async () => {
+    settings.shortBreakDuration = 0;
+    settings.autoStartWork = false; // Explicitly set to false
+    mockUseSettings.mockReturnValue(settings);
+    const { getByTestId } = await renderWithProviders();
+
+    act(() => {
+      timerHookValue.setMode('shortBreak');
+    });
+
+    act(() => {
+      timerHookValue.startTimer();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await waitFor(() => {
+      const newTimerValues = JSON.parse(getByTestId('timer-values').textContent || '{}');
+      expect(newTimerValues.mode).toBe('pomodoro');
+      expect(newTimerValues.isActive).toBe(false); // Should not be active
+    });
+  });
 });
