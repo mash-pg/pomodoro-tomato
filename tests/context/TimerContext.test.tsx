@@ -258,4 +258,41 @@ describe('TimerContext', () => {
     expect(timerValues.isPaused).toBe(true);
     expect(timerValues.pomodoroCount).toBe(3);
   });
+
+  it('should chain auto-starts from pomodoro to break and back to pomodoro', async () => {
+    settings.workDuration = 0;
+    settings.shortBreakDuration = 0;
+    settings.autoStartBreak = true;
+    settings.autoStartWork = true;
+    mockUseSettings.mockReturnValue(settings);
+    const { getByTestId } = await renderWithProviders();
+
+    // Start initial pomodoro
+    act(() => {
+        timerHookValue.startTimer();
+    });
+
+    // Advance time to finish pomodoro and auto-start break
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await waitFor(() => {
+      const breakTimerValues = JSON.parse(getByTestId('timer-values').textContent || '{}');
+      expect(breakTimerValues.mode).toBe('shortBreak');
+      expect(breakTimerValues.isActive).toBe(true);
+    });
+
+    // Advance time to finish break and auto-start next pomodoro
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await waitFor(() => {
+      const pomodoroTimerValues = JSON.parse(getByTestId('timer-values').textContent || '{}');
+      expect(pomodoroTimerValues.mode).toBe('pomodoro');
+      expect(pomodoroTimerValues.isActive).toBe(true);
+      expect(pomodoroTimerValues.pomodoroCount).toBe(1);
+    });
+  });
 });
