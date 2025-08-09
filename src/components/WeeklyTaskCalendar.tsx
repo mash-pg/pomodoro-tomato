@@ -15,9 +15,10 @@ interface Task {
 interface WeeklyTaskCalendarProps {
   user: User | null;
   tasks: Task[]; // Change sessions to tasks
+  onDeleteTask: (taskId: number) => void;
 }
 
-export default function WeeklyTaskCalendar({ user, tasks }: WeeklyTaskCalendarProps) {
+export default function WeeklyTaskCalendar({ user, tasks, onDeleteTask }: WeeklyTaskCalendarProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // 週の始まりを日曜日に設定
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,22 +102,48 @@ export default function WeeklyTaskCalendar({ user, tasks }: WeeklyTaskCalendarPr
             {selectedDateTasks.length === 0 ? (
               <p className="text-gray-400">この日にはタスクがありません。</p>
             ) : (
-              <table className="min-w-full bg-gray-700 rounded-lg border border-gray-600">
-                <thead>
-                  <tr>
-                    <th className="py-2 px-4 text-center text-red-500 border-r border-gray-600 border-b-4 border-gray-600">時間</th>
-                    <th className="py-2 px-4 text-center text-red-500 border-b-4 border-gray-600">タスク内容</th>
+            <table className="min-w-full bg-gray-700 rounded-lg border border-gray-600">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 text-center text-blue-500 border-r border-gray-600 border-b-4 border-gray-600">
+                    時間
+                  </th>
+                  <th className="py-2 px-4 text-center text-black border-r border-gray-600 border-b-5 border-gray-600">
+                    タスク内容
+                  </th>
+                  <th className="py-2 px-4 text-center text-red-500 border-b-4 border-gray-600" >
+                    削除
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedDateTasks.map((task) => (
+                  <tr key={task.id} className="border-t border-gray-600">
+                    <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">
+                      {format(new Date(task.created_at), "HH:mm")}
+                    </td>
+                    <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">
+                      {task.description}
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <button
+                        onClick={async () => {
+                          await onDeleteTask(task.id);
+                          setSelectedDateTasks((prev) => prev.filter((t) => t.id !== task.id));
+                        }}
+                        className="p-1 rounded-full bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                        aria-label="Delete task"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {selectedDateTasks.map(task => (
-                    <tr key={task.id} className="border-t border-gray-600">
-                      <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">{format(new Date(task.created_at), "HH:mm")}</td>
-                      <td className="py-2 px-4 text-center text-gray-200">{task.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </tbody>
+            </table>
+
             )}
             <div className="flex justify-end mt-6">
               <button onClick={closeModal} className="py-2 px-5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">

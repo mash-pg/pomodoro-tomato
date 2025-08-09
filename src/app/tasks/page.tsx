@@ -86,6 +86,32 @@ export default function TasksPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      const response = await fetch('/api/delete-task', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ task_id: taskId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete task');
+      }
+
+      // Update the state to remove the deleted task
+      setTodaysTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      // Optionally, you might want to refetch weekly tasks or update them as well
+      // setWeeklyTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      setError((err as Error).message || 'タスクの削除に失敗しました。');
+    }
+  };
+
   const groupTasksByDate = (tasks: Task[]) => {
     const grouped: { [key: string]: Task[] } = {};
     tasks.forEach(task => {
@@ -111,24 +137,46 @@ export default function TasksPage() {
         {user && !loading && !error && (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Today's Tasks */}
-            <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-bold mb-4">今日のタスク</h2>
+            <div className="bg-gray-800 p-8 rounded-lg shadow-xl border border-blue-500">
+              <h2 className="text-2xl font-bold mb-6 text-blue-400">今日のタスク</h2>
               {todaysTasks.length === 0 ? (
                 <p className="text-gray-400">今日完了したタスクはありません。</p>
               ) : (
-                <ul className="space-y-2">
-                  {todaysTasks.map(task => (
-                    <li key={task.id} className="text-gray-200">
-                      <span className="font-semibold mr-2">{new Date(task.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}</span>
-                      {task.description}
-                    </li>
-                  ))}
-                </ul>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-gray-700 rounded-lg border border-gray-600">
+                    <thead>
+                      <tr>
+                        <th className="py-2 px-4 text-center text-red-500 border-r border-gray-600 border-b-4 border-gray-600">時間</th>
+                        <th className="py-2 px-4 text-center text-red-500 border-r border-gray-600 border-b-4 border-gray-600">内容</th>
+                        <th className="py-2 px-4 text-center text-red-500 border-b-4 border-gray-600">削除</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {todaysTasks.map(task => (
+                        <tr key={task.id} className="border-t border-gray-600">
+                          <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">{new Date(task.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="py-2 px-4 text-center text-gray-200 border-r border-gray-600">{task.description}</td>
+                          <td className="py-2 px-4 text-center">
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-1 rounded-full bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                              aria-label="Delete task"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
             {/* Weekly Tasks */}
-            <WeeklyTaskCalendar user={user} tasks={weeklyTasks} />
+            <WeeklyTaskCalendar user={user} tasks={weeklyTasks} onDeleteTask={handleDeleteTask} />
           </div>
         )}
       </div>
