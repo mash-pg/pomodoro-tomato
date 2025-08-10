@@ -101,6 +101,7 @@ interface UserSettings {
   const pomodoroEndAudioRef = useRef<HTMLAudioElement | null>(null);
   const shortBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
   const longBreakEndAudioRef = useRef<HTMLAudioElement | null>(null);
+  const clickOnAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // --- UI State (from Context) ---
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -654,6 +655,10 @@ interface UserSettings {
           {!isActive && (
             <button
               onClick={() => {
+                if (clickOnAudioRef.current) {
+                  clickOnAudioRef.current.currentTime = 0;
+                  clickOnAudioRef.current.play();
+                }
                 unlockAudioContext();
                 startTimer();
               }}
@@ -754,6 +759,7 @@ interface UserSettings {
             <audio ref={pomodoroEndAudioRef} src="/sounds/pomodoro_end.mp3" preload="auto" />
             <audio ref={shortBreakEndAudioRef} src="/sounds/short_break_end.mp3" preload="auto" />
             <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
+            <audio ref={clickOnAudioRef} src="/sounds/clickon.mp3" preload="auto" />
           </>
         )}
         {/* Task Input Modal */}
