@@ -344,7 +344,7 @@ export default function StatsPage() {
                   <div className="bg-gray-700 p-4 rounded-md">
                     <h3 className="font-semibold text-lg mb-2">今日</h3>
                     <p>ポモドーロ: <span className="font-bold">{dailyStats.count} / {goals.daily_pomodoros}</span></p>
-                    <p>時間: <span className="font-bold">{(dailyStats.time / 60).toFixed(1)}</span> 時間</p>
+                    <p>合計時間: <span className="font-bold">{(dailyStats.time / 60).toFixed(1)}</span> 時間</p>
                     <button
                       onClick={() => clearSessions('day')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
@@ -356,7 +356,8 @@ export default function StatsPage() {
                   <div className="bg-gray-700 p-4 rounded-md">
                     <h3 className="font-semibold text-lg mb-2">今週</h3>
                     <p>ポモドーロ: <span className="font-bold">{weeklyStats.count} / {goals.weekly_pomodoros}</span></p>
-                    <p>時間: <span className="font-bold">{(weeklyStats.time / 60).toFixed(1)}</span> 時間</p>
+                    <p>合計時間: <span className="font-bold">{(weeklyStats.time / 60).toFixed(1)}</span> 時間</p>
+                    <p>平均時間: <span className="font-bold">{(weeklyStats.time / 60 / 7).toFixed(1)}</span> 時間/日</p>
                     <button
                       onClick={() => clearSessions('week')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
@@ -368,7 +369,8 @@ export default function StatsPage() {
                   <div className="bg-gray-700 p-4 rounded-md">
                     <h3 className="font-semibold text-lg mb-2">今月</h3>
                     <p>ポモドーロ: <span className="font-bold">{monthlyStats.count} / {goals.monthly_pomodoros}</span></p>
-                    <p>時間: <span className="font-bold">{(monthlyStats.time / 60).toFixed(1)}</span> 時間</p>
+                    <p>合計時間: <span className="font-bold">{(monthlyStats.time / 60).toFixed(1)}</span> 時間</p>
+                    <p>平均時間: <span className="font-bold">{(monthlyStats.time / 60 / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toFixed(1)}</span> 時間/日</p>
                     <button
                       onClick={() => clearSessions('month')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
