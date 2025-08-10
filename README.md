@@ -6,7 +6,7 @@
 
 このアプリケーションは、生産性を向上させるために設計された多機能ポモドーロタイマーです。以下の機能が含まれています。
 
-![Pomodoro Demo](https://github.com/mash-pg/pomodoro-tomato/assets/pomotamamovie_small.gif)
+![Pomodoro Demo](https://github.com/mash-pg/pomodoro-tomato/main/assets/pomotamamovie_small.gif)
 
 ### 1. ポモドーロタイマー
 
