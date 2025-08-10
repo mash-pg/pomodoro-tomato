@@ -235,7 +235,9 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
             </button>
           </div>
         <br />
-        <p>※1週間分の検索ができます。</p>
+        <p>※上記検索フォームに日付を入力すると入力された
+          <br />
+          日付からの1週間分の検索ができます。</p>
         </div>
         {loading && <p className="text-gray-400">タスクを読み込み中...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
