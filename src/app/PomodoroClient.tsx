@@ -732,7 +732,7 @@ interface UserSettings {
               </span>時間</p>
               <p className="mb-2">
                 <span>
-                  今月の平均：{(weeklyStats.time / 60 / daysInThisMonth).toFixed(1)}時間
+                  今月の平均：{(monthlyStats.time / 60 / daysInThisMonth).toFixed(1)}時間
                 </span>
               </p>
             </div>
