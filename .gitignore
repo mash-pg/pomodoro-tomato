@@ -42,3 +42,5 @@ next-env.d.ts
 
 pomodoro-timer-59f7c-firebase-adminsdk-fbsvc-2c0a7d10f0.json
 .vercel
+
+*.mp4
