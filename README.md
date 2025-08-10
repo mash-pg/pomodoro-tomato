@@ -20,7 +20,6 @@
 
 詳細な統計で進捗を追跡します。日次、週次、月次の目標を設定し、活動パターンをグラフで確認できます。
 
-![アプリのスクリーンショット1]()
 <img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/status.png" width="300">
 
 
