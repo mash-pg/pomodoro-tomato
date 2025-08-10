@@ -6,25 +6,29 @@
 
 このアプリケーションは、生産性を向上させるために設計された多機能ポモドーロタイマーです。以下の機能が含まれています。
 
-![Pomodoro Demo](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/pomotamamovie_small.gif)
+### 画面操作
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/pomotamamovie_small.gif" width="1000">
+
 
 ### 1. ポモドーロタイマー
 
 このアプリケーションの中核機能です。作業セッション、短い休憩、長い休憩の時間をカスタマイズできます。
-![アプリのスクリーンショット](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/timer.png)
+
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/timer.png" width="300">
 
 ### 2. 統計ページ
 
 詳細な統計で進捗を追跡します。日次、週次、月次の目標を設定し、活動パターンをグラフで確認できます。
 
-![アプリのスクリーンショット1](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/status.png)
+![アプリのスクリーンショット1]()
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/status.png" width="300">
 
 
 ### 3. カレンダー表示
 
 月間カレンダーで過去の活動を振り返ることができます。各日に完了したポモドーロの数が表示されます。
 
-![アプリのスクリーンショット1](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/calender.png)
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/calender.png" width="300">
 
 ### 4. 週時間カレンダー
 
@@ -32,13 +36,14 @@
 
 **PC表示:**
 
-![アプリのスクリーンショット1](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/weekcalender.png)
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/weekcalender.png" width="300">
 
 ### 5. ユーザー認証と設定
 
 サインアップとログインで、複数のデバイス間でデータを同期できます。タイマーの時間、自動開始の有無、テーマ（ダーク/ライト）などをカスタマイズ可能です。
 
-![アプリのスクリーンショット1](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/settings.png)
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/settings.png" width="300">
+
 
 ### 6. タスク管理
 
