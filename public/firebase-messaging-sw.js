@@ -20,11 +20,25 @@ firebase.initializeApp(firebaseConfig);
 // messages.
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
   console.log(
     '[firebase-messaging-sw.js] Received background message ',
     payload,
   );
+
+  // Check if the app is in the foreground
+  const windowClients = await self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true,
+  });
+
+  for (const client of windowClients) {
+    if (client.visibilityState === 'visible') {
+      // If the app is visible, don't show a notification
+      return;
+    }
+  }
+
   // Customize notification here
   const notificationTitle = payload.notification.title || 'Background Message Title';
   const notificationOptions = {

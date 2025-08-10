@@ -756,8 +756,6 @@ interface UserSettings {
             <audio ref={longBreakEndAudioRef} src="/sounds/long_break_end.mp3" preload="auto" />
           </>
         )}
-
-
         {/* Task Input Modal */}
         {isTaskModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
