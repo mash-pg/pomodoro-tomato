@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, addDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
 
 interface Task {
@@ -14,30 +14,33 @@ interface Task {
 
 interface WeeklyTaskCalendarProps {
   user: User | null;
-  tasks: Task[]; // Change sessions to tasks
+  tasks: Task[];
   onDeleteTask: (taskId: number) => void;
-  onUpdateTask: (taskId: number, newDescription: string) => Promise<void>; // Add onUpdateTask prop
+  onUpdateTask: (taskId: number, newDescription: string) => Promise<void>;
+  currentWeekStart: Date;
+  onPreviousWeek: () => void;
+  onNextWeek: () => void;
 }
 
-export default function WeeklyTaskCalendar({ user, tasks, onDeleteTask, onUpdateTask }: WeeklyTaskCalendarProps) {
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // 週の始まりを日曜日に設定
+export default function WeeklyTaskCalendar({ 
+  user, 
+  tasks, 
+  onDeleteTask, 
+  onUpdateTask, 
+  currentWeekStart,
+  onPreviousWeek,
+  onNextWeek
+}: WeeklyTaskCalendarProps) {
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editedDescription, setEditedDescription] = useState<string>('');
 
+  const weekEnd = addDays(currentWeekStart, 6);
   const daysInWeek = eachDayOfInterval({
     start: currentWeekStart,
-    end: endOfWeek(currentWeekStart, { weekStartsOn: 0 })
+    end: weekEnd
   });
-
-  const handlePreviousWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
-  };
-
-  const handleNextWeek = () => {
-    setCurrentWeekStart(addWeeks(currentWeekStart, 1));
-  };
 
   const getTasksForDay = (date: Date) => {
     return tasks.filter(task =>
@@ -54,6 +57,7 @@ export default function WeeklyTaskCalendar({ user, tasks, onDeleteTask, onUpdate
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDateTasks([]);
+    setEditingTaskId(null); // Close any open edits
   };
 
   if (!user) {
@@ -64,13 +68,13 @@ export default function WeeklyTaskCalendar({ user, tasks, onDeleteTask, onUpdate
     <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">週ごとのタスク</h2>
       <div className="flex justify-between items-center mb-4">
-        <button onClick={handlePreviousWeek} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+        <button onClick={onPreviousWeek} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
           &lt; 前の週
         </button>
         <h3 className="text-xl font-semibold">
-          {format(currentWeekStart, "yyyy年MM月dd日", { locale: ja })} - {format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), "yyyy年MM月dd日", { locale: ja })}
+          {format(currentWeekStart, "yyyy年MM月dd日", { locale: ja })} - {format(weekEnd, "yyyy年MM月dd日", { locale: ja })}
         </h3>
-        <button onClick={handleNextWeek} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+        <button onClick={onNextWeek} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
           次の週 &gt;
         </button>
       </div>

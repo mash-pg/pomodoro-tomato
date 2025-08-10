@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 import WeeklyTaskCalendar from '@/components/WeeklyTaskCalendar';
+import { startOfWeek, addDays, subWeeks, addWeeks } from 'date-fns';
 
 interface Task {
   id: number;
@@ -20,73 +21,116 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editedDescription, setEditedDescription] = useState<string>('');
+  
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [searchDate, setSearchDate] = useState<string>('');
+
+  const fetchWeeklyTasks = useCallback(async (startDate: Date, user: User) => {
+    const endDate = addDays(startDate, 7);
+
+    const { data: weeklyTasksData, error: weeklyTasksError } = await supabase
+      .from('tasks')
+      .select('id, user_id, description, created_at')
+      .eq('user_id', user.id)
+      .gte('created_at', startDate.toISOString())
+      .lt('created_at', endDate.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (weeklyTasksError) {
+      console.error("Error fetching weekly tasks:", weeklyTasksError);
+      setError(prev => prev ?? "今週のタスクの読み込みに失敗しました。");
+    } else {
+      setWeeklyTasks(weeklyTasksData || []);
+    }
+  }, []);
+
+  const fetchTodaysTasks = useCallback(async (user: User) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const { data: todaysTasksData, error: todaysTasksError } = await supabase
+      .from('tasks')
+      .select('id, user_id, description, created_at')
+      .eq('user_id', user.id)
+      .gte('created_at', today.toISOString())
+      .lt('created_at', tomorrow.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (todaysTasksError) {
+      console.error("Error fetching today's tasks:", todaysTasksError);
+      setError("今日のタスクの読み込みに失敗しました。");
+    } else {
+      setTodaysTasks(todaysTasksData || []);
+    }
+  }, []);
+
+  const fetchInitialData = useCallback(async (user: User) => {
+    setLoading(true);
+    setError(null);
+    await Promise.all([
+      fetchTodaysTasks(user),
+      fetchWeeklyTasks(currentWeekStart, user)
+    ]);
+    setLoading(false);
+  }, [currentWeekStart, fetchTodaysTasks, fetchWeeklyTasks]);
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      setError(null);
-
+    const initialize = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-
       if (user) {
-        // Fetch today's tasks
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const { data: todaysTasksData, error: todaysTasksError } = await supabase
-          .from('tasks')
-          .select('id, user_id, description, created_at')
-          .eq('user_id', user.id)
-          .gte('created_at', today.toISOString())
-          .lt('created_at', tomorrow.toISOString())
-          .order('created_at', { ascending: true });
-
-        if (todaysTasksError) {
-          console.error("Error fetching today's tasks:", todaysTasksError);
-          setError("今日のタスクの読み込みに失敗しました。");
-        } else {
-          setTodaysTasks(todaysTasksData || []);
-        }
-
-        // Fetch weekly tasks
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(endOfWeek.getDate() + 7);
-        endOfWeek.setHours(0, 0, 0, 0);
-
-        const { data: weeklyTasksData, error: weeklyTasksError } = await supabase
-          .from('tasks')
-          .select('id, user_id, description, created_at')
-          .eq('user_id', user.id)
-          .gte('created_at', startOfWeek.toISOString())
-          .lt('created_at', endOfWeek.toISOString())
-          .order('created_at', { ascending: false }); // Newest first for weekly
-
-        if (weeklyTasksError) {
-          console.error("Error fetching weekly tasks:", weeklyTasksError);
-          setError(prev => prev ?? "今週のタスクの読み込みに失敗しました。");
-        } else {
-          setWeeklyTasks(weeklyTasksData || []);
-        }
-
+        await fetchInitialData(user);
       } else {
         setTodaysTasks([]);
         setWeeklyTasks([]);
         setError("タスクを表示するにはログインしてください。");
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchTasks();
+    initialize();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => fetchTasks());
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      setUser(user);
+      if (user) {
+        initialize();
+      } else {
+        setTodaysTasks([]);
+        setWeeklyTasks([]);
+        setError("タスクを表示するにはログインしてください。");
+        setLoading(false);
+      }
+    });
+
     return () => authListener.subscription.unsubscribe();
-  }, []);
+  }, [fetchInitialData]);
+
+  useEffect(() => {
+    if (user) {
+      fetchWeeklyTasks(currentWeekStart, user);
+    }
+  }, [currentWeekStart, user, fetchWeeklyTasks]);
+
+  const handleSearch = () => {
+    if (searchDate) {
+      const date = new Date(searchDate);
+      // Note: The time zone offset might be an issue. Using UTC to be safe.
+      const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      setCurrentWeekStart(utcDate);
+    }
+  };
+
+  const handlePreviousWeek = () => {
+    setCurrentWeekStart(prev => subWeeks(prev, 1));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekStart(prev => addWeeks(prev, 1));
+  };
+
 
 // 置き換え：handleDeleteTask
 const handleDeleteTask = async (taskId: number) => {
@@ -175,7 +219,24 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-gray-900 text-white pt-20">
       <div className="z-10 w-full max-w-6xl items-center justify-between font-mono text-sm flex flex-col text-center">
         <h1 className="text-3xl font-bold mb-8">あなたのタスク履歴</h1>
-
+        <div className="w-full max-w-md mb-8">
+          <div className="flex gap-2">
+            <input 
+              type="date" 
+              value={searchDate}
+              onChange={(e) => setSearchDate(e.target.value)}
+              className="w-full px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              onClick={handleSearch}
+              className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            >
+              検索
+            </button>
+          </div>
+        <br />
+        <p>※1週間分の検索ができます。</p>
+        </div>
         {loading && <p className="text-gray-400">タスクを読み込み中...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
@@ -269,7 +330,15 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
             </div>
 
             {/* Weekly Tasks */}
-            <WeeklyTaskCalendar user={user} tasks={weeklyTasks} onDeleteTask={handleDeleteTask} onUpdateTask={handleUpdateTask} />
+            <WeeklyTaskCalendar 
+              user={user} 
+              tasks={weeklyTasks} 
+              onDeleteTask={handleDeleteTask} 
+              onUpdateTask={handleUpdateTask} 
+              currentWeekStart={currentWeekStart}
+              onPreviousWeek={handlePreviousWeek}
+              onNextWeek={handleNextWeek}
+            />
           </div>
         )}
       </div>
