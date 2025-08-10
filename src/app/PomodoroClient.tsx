@@ -66,6 +66,7 @@ interface UserSettings {
   // --- Task Management State ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskDescription, setTaskDescription] = useState('');
+  const [lastTaskDescription, setLastTaskDescription] = useState<string | null>(null); // Add this line
   
   const { theme, setTheme, darkMode, setDarkMode } = useSettings();  
   const [daysInThisMonth, setDaysInThisMonth] = useState(30);
@@ -390,6 +391,23 @@ interface UserSettings {
           setAllSessions(sessionsData as PomodoroSession[]);
         }
 
+        // Fetch last task
+        const { data: lastTaskData, error: lastTaskError } = await supabase
+          .from('tasks')
+          .select('description')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (lastTaskError && lastTaskError.code !== 'PGRST116') {
+          console.error('Error fetching last task:', lastTaskError);
+        } else if (lastTaskData) {
+          setLastTaskDescription(lastTaskData.description);
+        } else {
+          setLastTaskDescription(null); // No previous task found
+        }
+
         // Fetch settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('user_settings')
@@ -580,7 +598,7 @@ interface UserSettings {
   };
 
   // --- Function to unlock audio context ---
-  const unlockAudioContext = useCallback(() => {
+    const unlockAudioContext = useCallback(() => {
     const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
     audioRefs.forEach(ref => {
       if (ref.current) {
@@ -746,6 +764,11 @@ interface UserSettings {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">タスクを記録</h2>
               <p className="text-gray-600 dark:text-gray-300 mb-4">完了したタスクを入力してください。空のままでも記録できます。</p>
+              {lastTaskDescription && (
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                  前回のタスク: <span className="font-semibold">{lastTaskDescription}</span>
+                </p>
+              )}
               <textarea
                 value={taskDescription}
                 onChange={(e) => setTaskDescription(e.target.value)}

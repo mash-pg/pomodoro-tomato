@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, waitForElementToBeRemoved } from '@testing-library/react';
 import PomodoroClient from '@/app/PomodoroClient';
 import { useTimer } from '@/context/TimerContext';
 import { useSettings } from '@/context/SettingsContext';
@@ -10,139 +10,48 @@ import '@testing-library/jest-dom';
 // ← 一番上に置く（他の import の前）
 // Supabase を stateful にモックして、insert 後に一覧へ反映されるようにする
 jest.mock('@/lib/supabaseClient', () => {
-  const user = { id: 'test-user-id', email: 'test@example.com' };
+  const mockUser = { id: 'test-user-id', email: 'test@example.com' };
 
-  // tasks のインメモリDB
-  const tasksStore: Array<{ id: number; description: string; user_id: string; created_at: string }> = [];
-
-  // チェーン可能なクエリビルダー（最後に Promise を返す）
-  const makeQB = (getter: () => any[]) => {
-    const qb: any = {
-      _filters: {} as Record<string, any>,
-      select: jest.fn(() => qb),
-      eq: jest.fn((col: string, val: any) => { qb._filters[col] = val; return qb; }),
-      gte: jest.fn((col: string, val: any) => { qb._filters[`${col}__gte`] = val; return qb; }),
-      lt:  jest.fn((col: string, val: any) => { qb._filters[`${col}__lt`]  = val; return qb; }),
-      lte: jest.fn((col: string, val: any) => { qb._filters[`${col}__lte`] = val; return qb; }),
-      filter: jest.fn(() => qb),
-      order: jest.fn(async () => {
-        const all = getter();
-        const f = qb._filters;
-        let rows = all;
-        if (f['user_id'] != null) rows = rows.filter(r => r.user_id === f['user_id']);
-        if (f['created_at__gte']) rows = rows.filter(r => r.created_at >= f['created_at__gte']);
-        if (f['created_at__lt'])  rows = rows.filter(r => r.created_at <  f['created_at__lt']);
-        if (f['created_at__lte']) rows = rows.filter(r => r.created_at <= f['created_at__lte']);
-        return { data: rows, error: null };
-      }),
-      range: jest.fn(async () => {
-        const rows = getter();
-        return { data: rows, error: null, count: rows.length };
-      }),
-      single: jest.fn(async () => {
-        const rows = getter();
-        return { data: rows[0] ?? null, error: null };
-      }),
-      insert: jest.fn(async (payload: any[]) => {
-        // insert → select → single のテストチェーン対応
-        const added = payload.map((p, i) => {
-          const row = {
-            id: tasksStore.length + i + 1,
-            description: p.description ?? 'Test Task',
-            user_id: p.user_id ?? user.id,
-            created_at: p.created_at ?? new Date().toISOString(),
-          };
-          tasksStore.push(row);
-          return row;
-        });
-        return {
-          select: () => ({
-            single: async () => ({ data: added[0], error: null }),
-          }),
+  return {
+    supabase: {
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ data: { user: mockUser } }),
+        onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+        signOut: jest.fn().mockResolvedValue({ error: null }),
+        getSession: jest.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
+      },
+      from: jest.fn((tableName: string) => {
+        const mockQuery = {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          order: jest.fn().mockReturnThis(),
+          limit: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ data: null, error: null }), // Default for single
+          insert: jest.fn().mockReturnThis(),
+          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+          delete: jest.fn().mockResolvedValue({ data: null, error: null }),
         };
-      }),
-      upsert: jest.fn(async () => ({ data: null, error: null })),
-      delete: jest.fn(async () => ({ data: null, error: null })),
-    };
-    return qb;
-  };
 
-  const supabase = {
-    auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user } }),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
-      signOut: jest.fn().mockResolvedValue({ error: null }),
-      getSession: jest.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
-    },
-    from: jest.fn((table: string) => {
-      switch (table) {
-        case 'tasks':
-          // いつでも tasksStore を返す（保存後も一覧に反映される）
-          return makeQB(() => tasksStore);
-
-        case 'pomodoro_sessions': {
-          // ページング/統計用：空配列で十分。必要なら拡張OK
-          const list: any[] = [];
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  range: jest.fn(async () => ({ data: list, error: null, count: 0 })),
-                })),
-              })),
-            })),
-            delete: jest.fn(async () => ({ data: null, error: null })),
-          } as any;
+        if (tableName === 'tasks') {
+          mockQuery.single = jest.fn().mockResolvedValue({ data: { description: 'Mocked Last Task' }, error: null });
+          mockQuery.insert = jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({ data: { id: 1, description: 'Inserted Task' }, error: null }),
+            }),
+          });
+        } else if (tableName === 'user_settings') {
+          mockQuery.single = jest.fn().mockResolvedValue({ data: { work_minutes: 25, short_break_minutes: 5, long_break_minutes: 15, long_break_interval: 4, auto_start_work: false, auto_start_break: false, mute_notifications: false, dark_mode: true, enable_task_tracking: true }, error: null });
+        } else if (tableName === 'pomodoro_sessions') {
+          mockQuery.eq = jest.fn().mockResolvedValue({ data: [], error: null }); // For sessions, eq directly resolves
+        } else if (tableName === 'push_subscriptions') {
+          mockQuery.eq = jest.fn().mockResolvedValue({ data: [{ fcm_token: 'token1' }, { fcm_token: 'token2' }], error: null });
+          mockQuery.insert = jest.fn().mockResolvedValue({ error: null });
         }
 
-        case 'user_settings':
-          // モーダル表示ON、通知OFFのデフォルト
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(async () => ({
-                  data: {
-                    work_minutes: 25,
-                    short_break_minutes: 5,
-                    long_break_minutes: 15,
-                    long_break_interval: 4,
-                    auto_start_work: false,
-                    auto_start_break: false,
-                    mute_notifications: false,
-                    dark_mode: true,
-                    enable_task_tracking: true,
-                  },
-                  error: null,
-                })),
-              })),
-            })),
-          } as any;
-
-        case 'user_goals':
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(async () => ({
-                  data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 },
-                  error: null,
-                })),
-              })),
-            })),
-            upsert: jest.fn(async () => ({ data: null, error: null })),
-          } as any;
-
-        case 'push_subscriptions':
-          return { insert: jest.fn(async () => ({ error: null })) } as any;
-
-        default:
-          return {
-            select: jest.fn(() => ({ eq: jest.fn(async () => ({ data: [], error: null })) })),
-          } as any;
-      }
-    }),
+        return mockQuery;
+      }),
+    },
   };
-
-  return { supabase };
 });
 
 
@@ -230,6 +139,7 @@ describe('PomodoroClient', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    //jest.resetModules(); // Add this line
 
     timerContextValue = {
       minutes: 25, seconds: 0, isActive: false, isPaused: false,
@@ -256,11 +166,16 @@ describe('PomodoroClient', () => {
             delete: jest.fn().mockResolvedValue({ error: null }),
             upsert: jest.fn().mockResolvedValue({ error: null }),
             eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: { mute_notifications: false, enable_task_tracking: true }, error: null }),
+            //single: jest.fn().mockResolvedValue({ data: { mute_notifications: false, enable_task_tracking: true }, error: null }),
             filter: jest.fn().mockReturnThis(),
-            order: jest.fn().mockResolvedValue({ data: [], error: null }),
-        };
-
+            //order: jest.fn().mockResolvedValue({ data: [], error: null }),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: { mute_notifications: false, enable_task_tracking: true },
+              error: null
+            }),
+          };
         if (tableName === 'pomodoro_sessions') {
             return { // Return a specific mock for this table
                 select: jest.fn().mockReturnValue({
@@ -292,12 +207,14 @@ describe('PomodoroClient', () => {
   describe('Audio on Timer Completion', () => {
     it('should play sound on completion', async () => {
         const { rerender } = await renderComponent();
-        // await waitFor(() => screen.getAllByRole('audio')); // No longer needed
-        // const audio = screen.getAllByRole('audio')[0] as HTMLAudioElement; // No longer needed
         const playSpy = jest.spyOn(window.HTMLMediaElement.prototype, 'play');
 
         mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
-        await act(async () => { rerender(<PomodoroClient />); });
+        await act(async () => {
+            rerender(<PomodoroClient />);
+            // Ensure any promises from play() are resolved within this act block
+            await Promise.resolve();
+        });
 
         expect(playSpy).toHaveBeenCalled();
     });
@@ -331,39 +248,44 @@ describe('PomodoroClient', () => {
     });
 
     it('should not open task modal when disabled in settings', async () => {
-        // Mock settings to be disabled
-        (supabase.from as jest.Mock).mockImplementation((tableName: string) => {
-            if (tableName === 'user_settings') {
-                return {
-                    select: jest.fn().mockReturnThis(),
-                    eq: jest.fn().mockReturnThis(),
-                    single: jest.fn().mockResolvedValue({ data: { enable_task_tracking: false, mute_notifications: false }, error: null }),
-                };
-            }
-            if (tableName === 'pomodoro_sessions') {
-                return {
-                    select: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: [], error: null }) }),
-                };
-            }
-            return {
-                select: jest.fn().mockReturnThis(),
-                eq: jest.fn().mockReturnThis(),
-                filter: jest.fn().mockReturnThis(),
-                order: jest.fn().mockResolvedValue({ data: [], error: null }),
-                insert: jest.fn().mockReturnThis(),
-                single: jest.fn().mockResolvedValue({ data: {}, error: null }),
-            };
-        });
+      // ✅ user_settings だけ部分差し替え。他テーブルは既存モックへ委譲（limit/order を維持）
+      const prevFrom = mockSupabase.from as jest.Mock;
+      mockSupabase.from = jest.fn((tableName: string) => {
+       if (tableName === 'user_settings') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+           single: jest.fn().mockResolvedValue({
+              data: { enable_task_tracking: false, mute_notifications: false },
+             error: null,
+            }),
+          } as any;
+        }
+        return prevFrom(tableName);
+      });
 
-        const { rerender } = await renderComponent();
-        mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
-        await act(async () => { rerender(<PomodoroClient />); });
+      const { rerender } = await renderComponent();
 
-        await waitFor(() => {
-            expect(screen.queryByRole('heading', { name: 'タスクを記録' })).not.toBeInTheDocument();
-        });
+      // ✅ 設定読み込み完了の合図（通知ボタンが出る）まで待つ
+      await waitFor(() => {
+        expect(screen.getByText('通知をオフにする')).toBeInTheDocument();
+      });
+
+      // ここで完了イベントを発火
+      mockUseTimer.mockReturnValue({
+        ...timerContextValue,
+        completionCount: 1,
+        lastCompletedMode: 'pomodoro',
+      });
+      await act(async () => { rerender(<PomodoroClient />); });
+
+      // モーダルが出ていないことを確認
+      await waitFor(() => {
+        expect(screen.queryByRole('heading', { name: 'タスクを記録' })).not.toBeInTheDocument();
+      });
     });
-
     it('should save a task and update the list', async () => {
         const { rerender } = await renderComponent();
 
@@ -375,7 +297,9 @@ describe('PomodoroClient', () => {
         const saveButton = screen.getByRole('button', { name: '保存' });
 
         fireEvent.change(textarea, { target: { value: 'My new task' } });
-        fireEvent.click(saveButton);
+        await act(async () => {
+            fireEvent.click(saveButton);
+        });
 
         await waitFor(() => {
             expect(supabase.from).toHaveBeenCalledWith('tasks');
