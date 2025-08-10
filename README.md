@@ -6,12 +6,12 @@
 
 このアプリケーションは、生産性を向上させるために設計された多機能ポモドーロタイマーです。以下の機能が含まれています。
 
-![Pomodoro Demo](https://github.com/mash-pg/pomodoro-tomato/main/assets/pomotamamovie_small.gif)
+![Pomodoro Demo](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/pomotamamovie_small.gif)
 
 ### 1. ポモドーロタイマー
 
 このアプリケーションの中核機能です。作業セッション、短い休憩、長い休憩の時間をカスタマイズできます。
-
+![Pomodoro Demo](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/timer.png)
 ```
 +---------------------------------+
 |            ポモドーロ             |
