@@ -52,7 +52,7 @@
 *   **タスク履歴**: `/tasks` ページでは、日ごと、週ごとのタスク履歴を一覧で確認できます。
 *   **タスクの編集・削除**: 記録したタスクは、後から内容を編集したり、不要なタスクを削除したりすることが可能です。
 
-![アプリのスクリーンショット1](https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/tasks.png)
+<img src="https://raw.githubusercontent.com/mash-pg/pomodoro-tomato/main/assets/tasks.png" width="300">
 
 ### 7. 通知機能
 
