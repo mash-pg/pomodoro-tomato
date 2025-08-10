@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useRef, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useRef, useEffect, useCallback } from 'react';
 
 // Define a specific type for the settings to be shared
 export interface PomodoroSettings {
@@ -81,16 +81,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Function to update theme state and apply it to the document
-  const setTheme = (newTheme: string) => {
+  const setTheme = useCallback((newTheme: string) => {
     setThemeState(newTheme);
     if (typeof window !== 'undefined') { // Check if window is defined
       document.documentElement.setAttribute('data-theme', newTheme);
     }
-  };
+  }, []);
 
   // Function to update dark mode state and apply it to the document
-  const setDarkMode = (newDarkMode: boolean) => {
+  const setDarkMode = useCallback((newDarkMode: boolean) => {
     setDarkModeState(newDarkMode);
     if (typeof window !== 'undefined') { // Check if window is defined
       const root = document.documentElement;
@@ -100,7 +99,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         root.classList.remove('dark');
       }
     }
-  };
+  }, []);
 
   // This effect ensures the theme and dark mode are applied on first load and when they change.
   useEffect(() => {

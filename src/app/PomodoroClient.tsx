@@ -185,7 +185,7 @@ interface UserSettings {
 
   const handleSubscription = async () => {
     if (!messaging || !user) {
-      setSubscriptionStatusMessage('通知機能は利用できません。');
+      setSubscriptionStatusMessage('通知機能はログインしてからでないと利用できません。');
       return;
     }
 
