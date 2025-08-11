@@ -60,6 +60,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // 7. 連続日数の計算初期化
     let streak = 0; // 連続日数を格納する変数
+    // eslint-disable-next-line prefer-const
     let currentDate = new Date(); // 現在の日付を取得
     currentDate.setHours(0, 0, 0, 0); // 時間情報をリセットし、日付のみを比較できるように正規化
 
@@ -68,10 +69,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const todayString = currentDate.toDateString();
     if (uniqueDates.includes(todayString)) {
         streak++; // 今日のセッションがあれば連続日数を1増やす
-        currentDate.setDate(currentDate.getDate() - 1); // 次のチェックのために日付を1日前に戻す
+       currentDate = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));; // 次のチェックのために日付を1日前に戻す
     } else {
         // 今日のセッションがない場合、昨日のセッションがあるかを確認
-        currentDate.setDate(currentDate.getDate() - 1); // 日付を1日前に戻す
+       currentDate = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));; // 日付を1日前に戻す
         const yesterdayString = currentDate.toDateString();
         // 昨日のセッションもなければ、連続は0日と判断して返す
         if(!uniqueDates.includes(yesterdayString)) {
@@ -90,7 +91,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         // 現在チェックしている日付がユニークな日付リストに含まれているかを確認
         if (uniqueDates.includes(dateString)) {
             streak++; // 含まれていれば連続日数を増やす
-            currentDate.setDate(currentDate.getDate() - 1); // 次のチェックのために日付を1日前に戻す
+           currentDate = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));; // 次のチェックのために日付を1日前に戻す
         } else {
             consecutive = false; // 含まれていなければ連続が途切れたと判断し、ループを終了
         }
@@ -98,11 +99,16 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // 10. 最終的な連続日数の返却
     return res.status(200).json({ streak });
-  } catch (error: any) {
+  } catch (error: unknown) { // any から unknown に変更
     // 11. エラーハンドリング
     // 処理中にエラーが発生した場合は、エラーメッセージをログに出力し、500エラーを返す
-    console.error('Error fetching streak data:', error);
-    return res.status(500).json({ error: error.message });
+    if (error instanceof Error) { // エラーが Error オブジェクトのインスタンスかチェック
+      console.error('Error fetching streak data:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    // 予期しない型のエラーの場合
+    console.error('Unknown error fetching streak data:', error);
+    return res.status(500).json({ error: 'An unknown error occurred.' });
   }
 };
 

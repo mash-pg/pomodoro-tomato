@@ -608,7 +608,7 @@ interface UserSettings {
 
     // Update the ref with the current completionCount for the next render
     prevCompletionCountRef.current = completionCount;
-  }, [completionCount, lastCompletedMode, muteNotifications, fcmToken, user]);
+  }, [completionCount, lastCompletedMode, muteNotifications, fcmToken, user, enableTaskTracking]);
 
   const handleModeChange = (mode: TimerMode) => {
     setCurrentMode(mode);
