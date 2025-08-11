@@ -30,6 +30,7 @@ export default function StatsPage() {
   const [dailyStats, setDailyStats] = useState<Stats>({ count: 0, time: 0 });
   const [weeklyStats, setWeeklyStats] = useState<Stats>({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState<Stats>({ count: 0, time: 0 });
+  const [streak, setStreak] = useState(0);
   const [goals, setGoals] = useState<Goals>({ daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,10 +103,26 @@ export default function StatsPage() {
       } else if (goalsData) {
         setGoals(goalsData);
       }
+
+      // Fetch streak
+      const fetchStreak = async () => {
+        try {
+          const response = await fetch('/api/streak');
+          if (response.ok) {
+            const data = await response.json();
+            setStreak(data.streak);
+          }
+        } catch (error) {
+          console.error('Failed to fetch streak:', error);
+        }
+      };
+      fetchStreak();
+
     } else {
       setPaginatedSessions([]);
       setAllSessionsForStats([]);
       setTotalSessions(0);
+      setStreak(0);
       setError('統計情報を表示するにはログインしてください。');
     }
     setLoading(false);
@@ -341,6 +358,10 @@ export default function StatsPage() {
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-bold mb-4">概要</h2>
                 <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-gray-700 p-4 rounded-md">
+                    <h3 className="font-semibold text-lg mb-2">連続記録</h3>
+                    <p><span className="font-bold text-xl">連続ポモドーロ</span>日数: <span className="font-bold text-xl">{streak}</span> 日</p>
+                  </div>
                   <div className="bg-gray-700 p-4 rounded-md">
                     <h3 className="font-semibold text-lg mb-2">今日</h3>
                     <p>ポモドーロ: <span className="font-bold">{dailyStats.count} / {goals.daily_pomodoros}</span></p>
