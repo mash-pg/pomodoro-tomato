@@ -92,6 +92,7 @@ interface UserSettings {
   const [dailyStats, setDailyStats] = useState({ count: 0, time: 0 });
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
+  const [streak, setStreak] = useState(0);
   const [daysInThisWeek, setDaysInThisWeek] = useState(1);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
@@ -430,6 +431,20 @@ interface UserSettings {
           setEnableTaskTracking(settingsData.enable_task_tracking); // Add this
         }
 
+        // Fetch streak
+        const fetchStreak = async () => {
+          try {
+            const response = await fetch('/api/streak');
+            if (response.ok) {
+              const data = await response.json();
+              setStreak(data.streak);
+            }
+          } catch (error) {
+            console.error('Failed to fetch streak:', error);
+          }
+        };
+        fetchStreak();
+
       } else {
         setAllSessions([]); // Clear sessions if no user
         // Reset settings to default if no user
@@ -441,6 +456,7 @@ interface UserSettings {
                 setMuteNotifications(false);
         setDarkMode(true);
         setEnableTaskTracking(true); // Reset on logout
+        setStreak(0);
       }
     };
 
@@ -619,6 +635,11 @@ interface UserSettings {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       {/* Debugging: Display environment variables */}
+      {streak > 0 && (
+        <h2 className="mb-2 text-xl font-bold text-orange-500">
+          🔥 {streak}日連続！
+        </h2>
+      )}
       <div className="text-xs text-gray-500 mb-4">
       </div>
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
@@ -703,6 +724,7 @@ interface UserSettings {
         {user && (
           <div className="mt-12 text-lg text-left w-full max-w-xs">
             <div className="p-4 rounded-lg shadow-md">
+
               <p className="mb-2">今日: 
               <span className="font-bold">
                 {dailyStats.count}
