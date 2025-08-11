@@ -60,7 +60,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // 7. 連続日数の計算初期化
     let streak = 0; // 連続日数を格納する変数
-    // eslint-disable-next-line prefer-const
     let currentDate = new Date(); // 現在の日付を取得
     currentDate.setHours(0, 0, 0, 0); // 時間情報をリセットし、日付のみを比較できるように正規化
 

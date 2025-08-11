@@ -202,19 +202,6 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
   }
 };
 
-
-  const groupTasksByDate = (tasks: Task[]) => {
-    const grouped: { [key: string]: Task[] } = {};
-    tasks.forEach(task => {
-      const date = new Date(task.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
-      grouped[date].push(task);
-    });
-    return grouped;
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-gray-900 text-white pt-20">
       <div className="z-10 w-full max-w-6xl items-center justify-between font-mono text-sm flex flex-col text-center">

@@ -205,7 +205,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     startTimer,
     shortBreakDuration,
     longBreakDuration,
-    startTimer,
   ]);
 
   // Update timer display when settings/mode change, but only for a stopped timer.

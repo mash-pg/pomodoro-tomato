@@ -65,8 +65,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (savedSettingsJSON) {
           const savedSettings = JSON.parse(savedSettingsJSON);
           if (savedSettings) {
-            setTheme(savedSettings.theme ?? 'dark');
-            setDarkMode(savedSettings.darkMode ?? true);
+            setThemeState(savedSettings.theme ?? 'dark');
+            setDarkModeState(savedSettings.darkMode ?? true);
             setWorkDuration(savedSettings.workDuration ?? 25);
             setShortBreakDuration(savedSettings.shortBreakDuration ?? 5);
             setLongBreakDuration(savedSettings.longBreakDuration ?? 15);
@@ -103,7 +103,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   // This effect ensures the theme and dark mode are applied on first load and when they change.
   useEffect(() => {
-    if (typeof window !== 'undefined') { // Check if window is defined
+    if (typeof window !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme);
       if (darkMode) {
         document.documentElement.classList.add('dark');
@@ -111,7 +111,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         document.documentElement.classList.remove('dark');
       }
     }
-  }, [theme, darkMode]);
+  }, [theme, darkMode, setDarkMode, setTheme]);
+
 
   return (
     <SettingsContext.Provider value={{
