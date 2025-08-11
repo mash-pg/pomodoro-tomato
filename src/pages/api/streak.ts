@@ -1,6 +1,6 @@
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+//import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { NextApiRequest, NextApiResponse } from 'next';
-
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 /**
  * ポモドーロの連続日数を計算し、返すAPIエンドポイント。
  * GETリクエストのみを受け付け、認証されたユーザーのポモドーロセッション履歴に基づいて連続日数を算出します。
@@ -15,7 +15,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     // 2. Supabaseクライアントの初期化とセッションの取得
     // リクエストとレスポンスオブジェクトを使用して、サーバーサイドでSupabaseクライアントを初期化
-    const supabase = createServerSupabaseClient({ req, res });
+    const supabase = createPagesServerClient({ req, res });
     // 現在のユーザーセッションを取得
     const {
       data: { session },
@@ -98,6 +98,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     // 10. 最終的な連続日数の返却
+    console.log('Final streak:', streak); // デバッグ用ログ: 最終的な連続日数を表示
     return res.status(200).json({ streak });
   } catch (error: unknown) { // any から unknown に変更
     // 11. エラーハンドリング
