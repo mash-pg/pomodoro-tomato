@@ -131,6 +131,47 @@ export default function TasksPage() {
     setCurrentWeekStart(prev => addWeeks(prev, 1));
   };
 
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+
+  const handleAddTask = async () => {
+    if (!newTaskDescription.trim()) {
+      setError('タスクの内容を入力してください。');
+      return;
+    }
+    if (!user) {
+      setError('タスクを追加するにはログインしてください。');
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch('/api/add-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ description: newTaskDescription }),
+      });
+
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        console.error('Add API error payload:', json);
+        throw new Error(json?.error || json?.detail || 'Failed to add task');
+      }
+
+      setNewTaskDescription('');
+      setError(null); // Clear any previous errors
+      // Refresh tasks
+      await fetchTodaysTasks(user);
+      await fetchWeeklyTasks(currentWeekStart, user);
+    } catch (err) {
+      console.error('Error adding task:', err);
+      setError('タスクの追加に失敗しました。');
+    }
+  };
+
 
 // 置き換え：handleDeleteTask
 const handleDeleteTask = async (taskId: number) => {
@@ -226,6 +267,30 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
           <br />
           日付からの1週間分の検索ができます。</p>
         </div>
+        {user && (
+          <div className="w-full max-w-md mb-8">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="新しいタスクを追加"
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddTask();
+                  }
+                }}
+                className="w-full px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleAddTask}
+                className="px-6 py-2 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+        )}
         {loading && <p className="text-gray-400">タスクを読み込み中...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
