@@ -616,7 +616,7 @@ interface UserSettings {
 
   // --- Function to unlock audio context ---
     const unlockAudioContext = useCallback(() => {
-    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
+    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef, clickOnAudioRef];
     audioRefs.forEach(ref => {
       if (ref.current) {
         ref.current.play().then(() => {
