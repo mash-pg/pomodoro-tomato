@@ -485,7 +485,7 @@ interface UserSettings {
     // 週の何日目かを計算 (月曜日を1日目とする)
     const calculatedDaysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
     // 新しい状態変数を更新
-    setDaysInThisWeek(calculatedDaysInWeek + 2);
+        setDaysInThisWeek(calculatedDaysInWeek);
     const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     startOfWeek.setDate(diffToMonday);
     startOfWeek.setHours(0, 0, 0, 0);

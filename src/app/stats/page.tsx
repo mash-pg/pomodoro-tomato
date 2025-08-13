@@ -37,6 +37,7 @@ export default function StatsPage() {
 
   const [dailyActivityData, setDailyActivityData] = useState<{ hour: number; count: number }[]>([]);
   const [weeklyActivityData, setWeeklyActivityData] = useState<{ day: number; count: number }[]>([]);
+  const [daysPassedInWeek, setDaysPassedInWeek] = useState(1);
 
   const [manualPomodoros, setManualPomodoros] = useState<number | ''>(1);
   const [manualDuration, setManualDuration] = useState<number | ''>(25);
@@ -147,6 +148,9 @@ export default function StatsPage() {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
+
+    const daysPassed = dayOfWeek === 0 ? 7 : dayOfWeek;
+    setDaysPassedInWeek(daysPassed);
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -378,7 +382,7 @@ export default function StatsPage() {
                     <h3 className="font-semibold text-lg mb-2">今週</h3>
                     <p>ポモドーロ: <span className="font-bold">{weeklyStats.count} / {goals.weekly_pomodoros}</span></p>
                     <p>合計時間: <span className="font-bold">{(weeklyStats.time / 60).toFixed(1)}</span> 時間</p>
-                    <p>平均時間: <span className="font-bold">{(weeklyStats.time / 60 / 7).toFixed(1)}</span> 時間/日</p>
+                    <p>平均時間: <span className="font-bold">{(weeklyStats.time / 60 / (daysPassedInWeek || 1)).toFixed(1)}</span> 時間/日</p>
                     <button
                       onClick={() => clearSessions('week')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
