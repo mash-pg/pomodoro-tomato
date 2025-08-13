@@ -499,7 +499,7 @@ interface UserSettings {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
     // 今月の日数を計算して状態に保存
-    const calculatedDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const calculatedDaysInMonth = now.getDate();
     setDaysInThisMonth(calculatedDaysInMonth);
 
     let dailyCount = 0;

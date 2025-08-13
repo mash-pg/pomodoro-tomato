@@ -38,6 +38,7 @@ export default function StatsPage() {
   const [dailyActivityData, setDailyActivityData] = useState<{ hour: number; count: number }[]>([]);
   const [weeklyActivityData, setWeeklyActivityData] = useState<{ day: number; count: number }[]>([]);
   const [daysPassedInWeek, setDaysPassedInWeek] = useState(1);
+  const [daysPassedInMonth, setDaysPassedInMonth] = useState(1);
 
   const [manualPomodoros, setManualPomodoros] = useState<number | ''>(1);
   const [manualDuration, setManualDuration] = useState<number | ''>(25);
@@ -149,8 +150,11 @@ export default function StatsPage() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    const daysPassed = dayOfWeek === 0 ? 7 : dayOfWeek;
-    setDaysPassedInWeek(daysPassed);
+    const daysPassedInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+    setDaysPassedInWeek(daysPassedInWeek);
+
+    const daysPassedInMonth = now.getDate();
+    setDaysPassedInMonth(daysPassedInMonth);
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -395,7 +399,7 @@ export default function StatsPage() {
                     <h3 className="font-semibold text-lg mb-2">今月</h3>
                     <p>ポモドーロ: <span className="font-bold">{monthlyStats.count} / {goals.monthly_pomodoros}</span></p>
                     <p>合計時間: <span className="font-bold">{(monthlyStats.time / 60).toFixed(1)}</span> 時間</p>
-                    <p>平均時間: <span className="font-bold">{(monthlyStats.time / 60 / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toFixed(1)}</span> 時間/日</p>
+                    <p>平均時間: <span className="font-bold">{(monthlyStats.time / 60 / (daysPassedInMonth || 1)).toFixed(1)}</span> 時間/日</p>
                     <button
                       onClick={() => clearSessions('month')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
