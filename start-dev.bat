@@ -16,7 +16,7 @@ echo [1/3] Kill existing %HOST%:%PORT% (if any)...
 for /f "tokens=5" %%p in ('netstat -ano ^| find ":%PORT%" ^| find "LISTENING"') do taskkill /PID %%p /F >nul 2>&1
 
 echo [2/3] Run tests (foreground)...
-call npm run test
+call npm run test:unit
 if errorlevel 1 (
   echo Tests failed. See output above.
   pause

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest",
+        "test:unit": "jest --config jest.unit.config.js",
+    "e2etests:tests": "jest --config jest.e2e.config.js",
     "test:build:dev": "npm run test && npm run build && npm run dev",
     "test:build": "npm run test && npm run build"
   },
