@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+        "test": "npm run test:unit && npm run test:e2e:with-server",
     "test:unit": "jest --config jest.unit.config.js",
     "e2etests:tests": "jest --config jest.e2e.config.js",
-    "test:e2e:with-server": "concurrently \"npm run dev\" \"npm run e2etests:tests\"",
+    "test:e2e:with-server": "concurrently --kill-others \"npm run dev\" \"npm run e2etests:tests\"",
     "test:build:dev": "npm run test && npm run build && npm run dev",
     "test:build": "npm run test && npm run build"
   },
