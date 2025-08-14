@@ -30,6 +30,6 @@ module.exports = {
   // 変換をスキップするモジュールを指定
   // isows, @supabase, firebase 以外のnode_modules内のファイルは変換しない
   transformIgnorePatterns: [
-    '/node_modules/(?!isows|@supabase|firebase)',
+    '/node_modules/(?!isows|@supabase|firebase|selenium-webdriver)', // selenium-webdriverを追加
   ],
 };

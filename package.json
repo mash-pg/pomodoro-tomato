@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-        "test:unit": "jest --config jest.unit.config.js",
+    "test:unit": "jest --config jest.unit.config.js",
     "e2etests:tests": "jest --config jest.e2e.config.js",
+    "test:e2e:with-server": "concurrently \"npm run dev\" \"npm run e2etests:tests\"",
     "test:build:dev": "npm run test && npm run build && npm run dev",
     "test:build": "npm run test && npm run build"
   },
@@ -39,6 +40,7 @@
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "@types/selenium-webdriver": "^4.1.28",
     "@types/web-push": "^3.6.4",
     "babel-jest": "^30.0.5",
     "concurrently": "^9.2.0",
@@ -47,6 +49,7 @@
     "eslint-config-next": "15.4.4",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
+    "selenium-webdriver": "^4.35.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.0",
     "typescript": "^5"

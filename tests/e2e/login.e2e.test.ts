@@ -38,10 +38,14 @@ describe('Login Flow', () => {
     await loginButton.click();
 
     // ログイン後のリダイレクトと要素の表示を待機
-    // ここではログイン後に表示されるはずの"Tasks"というテキストを持つh1要素を待つ
-    await driver.wait(until.elementLocated(By.xpath('//h1[contains(text(), "Tasks")]')), 15000);
+    // ここではログイン後に表示されるはずの"ログイン中"というテキストを持つspan要素を待つ
+    await driver.wait(until.elementLocated(By.xpath('//span[contains(@class, "text-gray-300") and contains(text(), "ログイン中")]')), 15000);
+
+    // URLがルートページに変わるまで待機
+    await driver.wait(until.urlIs('http://localhost:3000/'), 10000);
 
     // スクリーンショットを保存
+    await driver.sleep(5000); // ページが完全にレンダリングされるまで5秒待機
     const screenshot = await driver.takeScreenshot();
     if (!fs.existsSync('./testimage')) {
       fs.mkdirSync('./testimage');
@@ -50,6 +54,6 @@ describe('Login Flow', () => {
 
     // URLや特定の要素の存在をアサートして、ログイン成功を最終確認
     const currentUrl = await driver.getCurrentUrl();
-    expect(currentUrl).toContain('/tasks'); // ログイン後は/tasksページにいることを期待
+    expect(currentUrl).toEqual('http://localhost:3000/'); // ログイン後はルートページにいることを期待
   });
 });
