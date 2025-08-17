@@ -28,7 +28,7 @@ export default function StatsPage() {
   const [paginatedSessions, setPaginatedSessions] = useState<PomodoroSession[]>([]);
   const [allSessionsForStats, setAllSessionsForStats] = useState<PomodoroSession[]>([]);
   const [dailyStats, setDailyStats] = useState<Stats>({ count: 0, time: 0 });
-  const [weeklyStats, setWeeklyStats] = useState<Stats>({ count: 0, time: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0, activeDays: 0 });
   const [monthlyStats, setMonthlyStats] = useState<Stats>({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
   const [goals, setGoals] = useState<Goals>({ daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 });
@@ -140,18 +140,12 @@ export default function StatsPage() {
     const now = new Date();
     const todayStr = now.toDateString();
 
+    // Weekly (Sunday as start)
     const startOfWeek = new Date(now);
-    const dayOfWeek = startOfWeek.getDay();
-    const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    startOfWeek.setDate(diffToMonday);
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    const endOfWeek = new Date(now);
     endOfWeek.setHours(23, 59, 59, 999);
-
-    const daysPassedInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-    setDaysPassedInWeek(daysPassedInWeek);
 
     const daysPassedInMonth = now.getDate();
     setDaysPassedInMonth(daysPassedInMonth);
@@ -162,6 +156,7 @@ export default function StatsPage() {
 
     let dailyCount = 0, dailyTime = 0;
     let weeklyCount = 0, weeklyTime = 0;
+    const weeklyActiveDays = new Set();
     let monthlyCount = 0, monthlyTime = 0;
 
     const dailyActivity: { [hour: number]: number } = {};
@@ -181,6 +176,7 @@ export default function StatsPage() {
       if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
+        weeklyActiveDays.add(sessionDate.toDateString());
         weeklyActivity[sessionDate.getDay()]++;
       }
       if (sessionDate >= startOfMonth && sessionDate <= endOfMonth) {
@@ -190,7 +186,7 @@ export default function StatsPage() {
     });
 
     setDailyStats({ count: dailyCount, time: dailyTime });
-    setWeeklyStats({ count: weeklyCount, time: weeklyTime });
+    setWeeklyStats({ count: weeklyCount, time: weeklyTime, activeDays: weeklyActiveDays.size });
     setMonthlyStats({ count: monthlyCount, time: monthlyTime });
 
     setDailyActivityData(Object.keys(dailyActivity).map(key => ({ hour: Number(key), count: dailyActivity[Number(key)] })));
@@ -386,7 +382,7 @@ export default function StatsPage() {
                     <h3 className="font-semibold text-lg mb-2">今週</h3>
                     <p>ポモドーロ: <span className="font-bold">{weeklyStats.count} / {goals.weekly_pomodoros}</span></p>
                     <p>合計時間: <span className="font-bold">{(weeklyStats.time / 60).toFixed(1)}</span> 時間</p>
-                    <p>平均時間: <span className="font-bold">{(weeklyStats.time / 60 / (daysPassedInWeek || 1)).toFixed(1)}</span> 時間/日</p>
+                    <p>平均時間: <span className="font-bold">{(weeklyStats.activeDays > 0 ? weeklyStats.time / 60 / weeklyStats.activeDays : 0).toFixed(1)}</span> 時間/日</p>
                     <button
                       onClick={() => clearSessions('week')}
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md"
