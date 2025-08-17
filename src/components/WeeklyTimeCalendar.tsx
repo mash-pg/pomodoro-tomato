@@ -65,6 +65,18 @@ export default function WeeklyTimeCalendar({ user, sessions }: WeeklyCalendarPro
         </button>
       </div>
       {/* Responsive Grid */}
+      <div className="text-center mb-6 p-4 bg-gray-700 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-300">この週の1日あたりの平均</h4>
+        <p className="text-3xl font-bold text-green-400">
+          {(() => {
+            const totalMinutes = daysInWeek.reduce((total, day) => total + getPomodoroTimeForDay(day), 0);
+            const averageMinutes = totalMinutes / 7;
+            const hours = Math.floor(averageMinutes / 60);
+            const minutes = Math.round(averageMinutes % 60);
+            return `${hours}時間 ${minutes}分`;
+          })()}
+        </p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4 text-center">
         {daysInWeek.map(day => (
           <div key={day.toISOString()} className="p-2 md:p-4 border border-gray-700 rounded-md flex flex-row md:flex-col items-center md:items-center gap-4">

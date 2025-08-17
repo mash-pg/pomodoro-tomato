@@ -90,7 +90,7 @@ interface UserSettings {
   const [user, setUser] = useState<User | null>(null);
   const [allSessions, setAllSessions] = useState<PomodoroSession[]>([]);
   const [dailyStats, setDailyStats] = useState({ count: 0, time: 0 });
-  const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0, activeDays: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
   const [daysInThisWeek, setDaysInThisWeek] = useState(1);
@@ -122,7 +122,7 @@ interface UserSettings {
     audioRefs.forEach(ref => {
       if (ref.current) {
         ref.current.addEventListener('canplaythrough', handleCanPlay);
-        ref.current.load(); 
+        ref.current.load();
       }
     });
 
@@ -474,31 +474,22 @@ interface UserSettings {
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
-    const now = new Date(); // Current date and time in local timezone
+    const now = new Date();
 
-    // --- Daily Calculation ---
+    // Daily
     const todayStr = now.toDateString();
 
-    // --- Weekly Calculation (Local Timezone) ---
+    // Weekly (Sunday as start)
     const startOfWeek = new Date(now);
-    const dayOfWeek = startOfWeek.getDay(); // 0 (Sun) to 6 (Sat)
-    // 週の何日目かを計算 (月曜日を1日目とする)
-    const calculatedDaysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-    // 新しい状態変数を更新
-        setDaysInThisWeek(calculatedDaysInWeek);
-    const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    startOfWeek.setDate(diffToMonday);
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    const endOfWeek = new Date(now); // up to now
     endOfWeek.setHours(23, 59, 59, 999);
-    
-    // --- Monthly Calculation (Local Timezone) ---
+
+    // Monthly
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
-    // 今月の日数を計算して状態に保存
     const calculatedDaysInMonth = now.getDate();
     setDaysInThisMonth(calculatedDaysInMonth);
 
@@ -506,25 +497,24 @@ interface UserSettings {
     let dailyTime = 0;
     let weeklyCount = 0;
     let weeklyTime = 0;
+    const weeklyActiveDays = new Set();
     let monthlyCount = 0;
     let monthlyTime = 0;
 
     allSessions.forEach(session => {
-      const sessionDate = new Date(session.created_at); // Converts timestamp to local Date object
+      const sessionDate = new Date(session.created_at);
 
-      // Daily check
       if (sessionDate.toDateString() === todayStr) {
         dailyCount++;
         dailyTime += session.duration_minutes;
       }
 
-      // Weekly check
       if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
         weeklyCount++;
         weeklyTime += session.duration_minutes;
+        weeklyActiveDays.add(sessionDate.toDateString());
       }
 
-      // Monthly check
       if (sessionDate >= startOfMonth && sessionDate <= endOfMonth) {
         monthlyCount++;
         monthlyTime += session.duration_minutes;
@@ -532,7 +522,7 @@ interface UserSettings {
     });
 
     setDailyStats({ count: dailyCount, time: dailyTime });
-    setWeeklyStats({ count: weeklyCount, time: weeklyTime });
+    setWeeklyStats({ count: weeklyCount, time: weeklyTime, activeDays: weeklyActiveDays.size });
     setMonthlyStats({ count: monthlyCount, time: monthlyTime });
 
   }, [allSessions]);
@@ -742,7 +732,11 @@ interface UserSettings {
               </span>時間</p>
               <p className="mb-2">
                 <span>
-                  今週の平均：{(weeklyStats.time / 60 / daysInThisWeek).toFixed(1)}時間
+                  今週の平均：{
+                    weeklyStats.activeDays > 0
+                      ? (weeklyStats.time / 60 / weeklyStats.activeDays).toFixed(1)
+                      : '0.0'
+                  }時間
                 </span>
               </p>
               <p className="mb-2">今月: 
