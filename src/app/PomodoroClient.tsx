@@ -630,6 +630,8 @@ interface UserSettings {
           🔥 {streak}日連続！
         </h2>
       )}
+      
+
       <div className="text-xs text-gray-500 mb-4">
       </div>
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
@@ -709,7 +711,10 @@ interface UserSettings {
             リセット
           </button>
         </div>
-
+        <br />
+        <h1 className="mb-2 text-xl font-bold text-gray-500">
+          前回のタスク: <span className="font-semibold" >{lastTaskDescription}</span>
+        </h1>
         {/* Statistics Display */}
         {user && (
           <div className="mt-12 text-lg text-left w-full max-w-xs">
