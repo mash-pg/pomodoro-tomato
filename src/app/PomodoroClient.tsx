@@ -93,7 +93,7 @@ interface UserSettings {
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0, activeDays: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
-  const [daysInThisWeek, setDaysInThisWeek] = useState(1);
+  //const [daysInThisWeek, setDaysInThisWeek] = useState(1);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
   const [subscriptionStatusMessage, setSubscriptionStatusMessage] = useState('');

@@ -37,7 +37,7 @@ export default function StatsPage() {
 
   const [dailyActivityData, setDailyActivityData] = useState<{ hour: number; count: number }[]>([]);
   const [weeklyActivityData, setWeeklyActivityData] = useState<{ day: number; count: number }[]>([]);
-  const [daysPassedInWeek, setDaysPassedInWeek] = useState(1);
+  //const [daysPassedInWeek, setDaysPassedInWeek] = useState(1);
   const [daysPassedInMonth, setDaysPassedInMonth] = useState(1);
 
   const [manualPomodoros, setManualPomodoros] = useState<number | ''>(1);
