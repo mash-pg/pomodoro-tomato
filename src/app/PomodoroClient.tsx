@@ -606,7 +606,7 @@ interface UserSettings {
 
   // --- Function to unlock audio context ---
     const unlockAudioContext = useCallback(() => {
-    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef, clickOnAudioRef];
+    const audioRefs = [pomodoroEndAudioRef, shortBreakEndAudioRef, longBreakEndAudioRef];
     audioRefs.forEach(ref => {
       if (ref.current) {
         ref.current.play().then(() => {
@@ -677,11 +677,11 @@ interface UserSettings {
           {!isActive && (
             <button
               onClick={() => {
+                unlockAudioContext();
                 if (clickOnAudioRef.current) {
                   clickOnAudioRef.current.currentTime = 0;
                   clickOnAudioRef.current.play();
                 }
-                unlockAudioContext();
                 startTimer();
               }}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
