@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 import { useSettings } from "@/context/SettingsContext";
 import { useTimer } from "@/context/TimerContext"; // Import useTimer
+import { useTasks } from "@/context/TaskContext"; // Import useTasks
 import { supabase } from "@/lib/supabaseClient";
 import { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { SettingsModalProps } from "@/components/SettingsModal";
@@ -52,7 +53,7 @@ interface UserSettings {
 }
 
   export default function PomodoroClient() {
-  // --- Timer Settings ---
+  // --- Timer Settings -- -
   const [workDuration, setWorkDuration] = useState(25); // minutes
   const [shortBreakDuration, setShortBreakDuration] = useState(5); // minutes
   const [longBreakDuration, setLongBreakDuration] = useState(15); // minutes
@@ -66,9 +67,9 @@ interface UserSettings {
   // --- Task Management State ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskDescription, setTaskDescription] = useState('');
-  const [lastTaskDescription, setLastTaskDescription] = useState<string | null>(null); // Add this line
-  
-  const { theme, setTheme, darkMode, setDarkMode } = useSettings();  
+  const { latestTask, fetchTasks } = useTasks(); // Use tasks from context
+
+  const { theme, setTheme, darkMode, setDarkMode } = useSettings();
   const [daysInThisMonth, setDaysInThisMonth] = useState(30);
   // --- Timer State (from Context) ---
   const {
@@ -266,7 +267,8 @@ interface UserSettings {
     if (error) {
       console.error('Error saving task:', error);
     } else if (data) {
-      // Task saved successfully, no need to update local state here as it's moved to TasksPage
+      // Task saved successfully, now we refetch the tasks
+      fetchTasks();
     }
 
     // Reset description and close modal
@@ -393,22 +395,8 @@ interface UserSettings {
           setAllSessions(sessionsData as PomodoroSession[]);
         }
 
-        // Fetch last task
-        const { data: lastTaskData, error: lastTaskError } = await supabase
-          .from('tasks')
-          .select('description')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (lastTaskError && lastTaskError.code !== 'PGRST116') {
-          console.error('Error fetching last task:', lastTaskError);
-        } else if (lastTaskData) {
-          setLastTaskDescription(lastTaskData.description);
-        } else {
-          setLastTaskDescription(null); // No previous task found
-        }
+        // Fetch tasks using the context function
+        fetchTasks();
 
         // Fetch settings
         const { data: settingsData, error: settingsError } = await supabase
@@ -470,7 +458,7 @@ interface UserSettings {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getDuration, setDarkMode, completionCount]);
+  }, [getDuration, setDarkMode, completionCount, fetchTasks]);
 
   // --- Calculate statistics whenever allSessions changes ---
   useEffect(() => {
@@ -740,7 +728,7 @@ interface UserSettings {
         </div>
         <br />
         <h1 className="mb-2 text-xl font-bold text-gray-500">
-          前回のタスク: <span className="font-semibold" >{lastTaskDescription}</span>
+          前回のタスク: <span className="font-semibold" >{latestTask?.description || 'N/A'}</span>
         </h1>
         {/* Statistics Display */}
         {user && (
@@ -816,9 +804,9 @@ interface UserSettings {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">タスクを記録</h2>
               <p className="text-gray-600 dark:text-gray-300 mb-4">完了したタスクを入力してください。空のままでも記録できます。</p>
-              {lastTaskDescription && (
+              {latestTask && (
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
-                  前回のタスク: <span className="font-semibold">{lastTaskDescription}</span>
+                  前回のタスク: <span className="font-semibold">{latestTask.description}</span>
                 </p>
               )}
               <textarea

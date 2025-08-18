@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 import WeeklyTaskCalendar from '@/components/WeeklyTaskCalendar';
-import { startOfWeek, addDays, subWeeks, addWeeks } from 'date-fns';
+import { startOfWeek, addDays, subWeeks, addWeeks, isToday } from 'date-fns';
+import { useTasks } from '@/context/TaskContext'; // Use the new TaskContext
 
 interface Task {
   id: number;
@@ -14,9 +15,9 @@ interface Task {
 }
 
 export default function TasksPage() {
+  const { tasks, fetchTasks } = useTasks(); // Get tasks and fetcher from context
   const [user, setUser] = useState<User | null>(null);
-  const [todaysTasks, setTodaysTasks] = useState<Task[]>([]);
-  const [weeklyTasks, setWeeklyTasks] = useState<Task[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -25,67 +26,27 @@ export default function TasksPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [searchDate, setSearchDate] = useState<string>('');
 
-  const fetchWeeklyTasks = useCallback(async (startDate: Date, user: User) => {
-    const endDate = addDays(startDate, 7);
-
-    const { data: weeklyTasksData, error: weeklyTasksError } = await supabase
-      .from('tasks')
-      .select('id, user_id, description, created_at')
-      .eq('user_id', user.id)
-      .gte('created_at', startDate.toISOString())
-      .lt('created_at', endDate.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (weeklyTasksError) {
-      console.error("Error fetching weekly tasks:", weeklyTasksError);
-      setError(prev => prev ?? "今週のタスクの読み込みに失敗しました。");
-    } else {
-      setWeeklyTasks(weeklyTasksData || []);
-    }
-  }, []);
-
-  const fetchTodaysTasks = useCallback(async (user: User) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const { data: todaysTasksData, error: todaysTasksError } = await supabase
-      .from('tasks')
-      .select('id, user_id, description, created_at')
-      .eq('user_id', user.id)
-      .gte('created_at', today.toISOString())
-      .lt('created_at', tomorrow.toISOString())
-      .order('created_at', { ascending: true });
-
-    if (todaysTasksError) {
-      console.error("Error fetching today's tasks:", todaysTasksError);
-      setError("今日のタスクの読み込みに失敗しました。");
-    } else {
-      setTodaysTasks(todaysTasksData || []);
-    }
-  }, []);
-
-  const fetchInitialData = useCallback(async (user: User) => {
-    setLoading(true);
-    setError(null);
-    await Promise.all([
-      fetchTodaysTasks(user),
-      fetchWeeklyTasks(currentWeekStart, user)
-    ]);
-    setLoading(false);
-  }, [currentWeekStart, fetchTodaysTasks, fetchWeeklyTasks]);
+  const todaysTasks = tasks.filter(task => isToday(new Date(task.created_at)));
+  const weeklyTasks = tasks.filter(task => {
+      const taskDate = new Date(task.created_at);
+      const endDate = addDays(currentWeekStart, 7);
+      return taskDate >= currentWeekStart && taskDate < endDate;
+  });
 
   useEffect(() => {
     const initialize = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        await fetchInitialData(user);
-      } else {
-        setTodaysTasks([]);
-        setWeeklyTasks([]);
-        setError("タスクを表示するにはログインしてください。");
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+        if (user) {
+          await fetchTasks();
+        } else {
+          setError("タスクを表示するにはログインしてください。");
+        }
+      } catch (error) {
+        setError("タスクの読み込みに失敗しました。");
+      } finally {
         setLoading(false);
       }
     };
@@ -98,26 +59,17 @@ export default function TasksPage() {
       if (user) {
         initialize();
       } else {
-        setTodaysTasks([]);
-        setWeeklyTasks([]);
         setError("タスクを表示するにはログインしてください。");
-        setLoading(false);
       }
     });
 
     return () => authListener.subscription.unsubscribe();
-  }, [fetchInitialData]);
+  }, [fetchTasks]);
 
-  useEffect(() => {
-    if (user) {
-      fetchWeeklyTasks(currentWeekStart, user);
-    }
-  }, [currentWeekStart, user, fetchWeeklyTasks]);
 
   const handleSearch = () => {
     if (searchDate) {
       const date = new Date(searchDate);
-      // Note: The time zone offset might be an issue. Using UTC to be safe.
       const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
       setCurrentWeekStart(utcDate);
     }
@@ -162,10 +114,8 @@ export default function TasksPage() {
       }
 
       setNewTaskDescription('');
-      setError(null); // Clear any previous errors
-      // Refresh tasks
-      await fetchTodaysTasks(user);
-      await fetchWeeklyTasks(currentWeekStart, user);
+      setError(null);
+      await fetchTasks(); // Refresh tasks from context
     } catch (err) {
       console.error('Error adding task:', err);
       setError('タスクの追加に失敗しました。');
@@ -193,8 +143,7 @@ const handleDeleteTask = async (taskId: number) => {
       throw new Error(json?.error || json?.detail || 'Failed to delete task');
     }
 
-    setTodaysTasks(prev => prev.filter(t => t.id !== taskId));
-    setWeeklyTasks(prev => prev.filter(t => t.id !== taskId));
+    await fetchTasks(); // Refresh tasks from context
   } catch (err) {
     console.error('Error deleting task:', err);
     setError('タスクの削除に失敗しました。');
@@ -223,19 +172,8 @@ const handleUpdateTask = async (taskId: number, newDescription: string) => {
       console.error('Update API error payload:', json);
       throw new Error(json?.error || json?.detail || 'Failed to update task');
     }
-
-    // API が data.description を返さない場合に備えてフォールバック
-    const updatedDesc =
-      (json && json.data && typeof json.data.description === 'string')
-        ? json.data.description
-        : newDescription;
-
-    setTodaysTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, description: updatedDesc } : t))
-    );
-    setWeeklyTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, description: updatedDesc } : t))
-    );
+    
+    await fetchTasks(); // Refresh tasks from context
     setEditingTaskId?.(null);
   } catch (err) {
     console.error('Error updating task:', err);

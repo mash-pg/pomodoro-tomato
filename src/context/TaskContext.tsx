@@ -6,11 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 interface Task {
   id: number;
   user_id: string;
-  task_name: string;
-  estimated_cycles: number;
-  actual_cycles: number;
-  completed: boolean;
-  scheduled_date: string;
+  description: string | null;
   created_at: string;
 }
 

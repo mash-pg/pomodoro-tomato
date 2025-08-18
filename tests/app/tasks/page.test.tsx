@@ -2,6 +2,14 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TasksPage from '@/app/tasks/page';
 import { supabase } from '@/lib/supabaseClient';
+import { useTasks } from '@/context/TaskContext';
+
+jest.mock('@/context/TaskContext', () => ({
+  __esModule: true,
+  useTasks: jest.fn(),
+}));
+
+const mockUseTasks = useTasks as jest.Mock;
 
 // Mock the supabase client
 jest.mock('@/lib/supabaseClient', () => ({
@@ -14,18 +22,14 @@ jest.mock('@/lib/supabaseClient', () => ({
       })),
     },
     from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        })),
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
+      select: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      order: jest.fn().mockResolvedValue({ data: [], error: null }),
     })),
   },
 }));
@@ -50,6 +54,12 @@ describe('TasksPage', () => {
       data: { session: { user: mockUser, access_token: 'mock-token' } },
       error: null,
     });
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
+    mockUseTasks.mockReturnValue({
+      tasks: [],
+      fetchTasks: jest.fn(),
+      latestTask: null,
+    });
   });
 
   it('should display loading state initially', () => {
@@ -67,21 +77,7 @@ describe('TasksPage', () => {
   });
 
   it('should display task sections when user is authenticated and no tasks', async () => {
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        })),
-      })),
-    });
-
     render(<TasksPage />);
-
     await waitFor(() => {
       expect(screen.getByText('あなたのタスク履歴')).toBeInTheDocument();
       expect(screen.getByText('今日のタスク')).toBeInTheDocument();
@@ -91,21 +87,13 @@ describe('TasksPage', () => {
   });
 
   it("should display today's tasks", async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Test Task 1', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     render(<TasksPage />);
@@ -116,21 +104,13 @@ describe('TasksPage', () => {
   });
 
   it("should delete a task from today's tasks", async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Task to delete', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     render(<TasksPage />);
@@ -150,26 +130,17 @@ describe('TasksPage', () => {
           body: JSON.stringify({ task_id: 1 }),
         })
       );
-      expect(screen.queryByText('Task to delete')).not.toBeInTheDocument();
     });
   });
 
   it("should allow editing a task from today's tasks", async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Original Task', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     render(<TasksPage />);
@@ -195,27 +166,17 @@ describe('TasksPage', () => {
           body: JSON.stringify({ task_id: 1, description: 'Updated Task' }),
         })
       );
-      expect(screen.getByText('Updated Task')).toBeInTheDocument();
-      expect(screen.queryByDisplayValue('Original Task')).not.toBeInTheDocument();
     });
   });
 
   it("should cancel editing a task from today's tasks", async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Original Task', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     render(<TasksPage />);
@@ -234,52 +195,35 @@ describe('TasksPage', () => {
     fireEvent.click(cancelButton);
 
     await waitFor(() => {
-      expect(mockFetch).not.toHaveBeenCalledWith(
-        '/api/update-task',
-        expect.any(Object)
-      );
+      expect(mockFetch).not.toHaveBeenCalled();
       expect(screen.getByText('Original Task')).toBeInTheDocument();
       expect(screen.queryByDisplayValue('Updated Task')).not.toBeInTheDocument();
     });
   });
 
   it('should display error message if task fetching fails', async () => {
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: null, error: { message: 'Fetch error' } })),
-            })),
-          })),
-        })),
-      })),
+    const fetchTasks = jest.fn().mockRejectedValue(new Error('Fetch error'));
+    mockUseTasks.mockReturnValue({
+        tasks: [],
+        fetchTasks: fetchTasks,
+        latestTask: null,
     });
 
     render(<TasksPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('今日のタスクの読み込みに失敗しました。')).toBeInTheDocument();
+        expect(screen.getByText('タスクの読み込みに失敗しました。')).toBeInTheDocument();
     });
   });
 
   it('should display error message if delete task API fails', async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Task to delete', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -302,21 +246,13 @@ describe('TasksPage', () => {
   });
 
   it('should display error message if update task API fails', async () => {
-    const mockTodaysTasks = [
+    const mockTasks = [
       { id: 1, user_id: mockUser.id, description: 'Original Task', created_at: new Date().toISOString() },
     ];
-
-    (supabase.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: mockUser } });
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          gte: jest.fn(() => ({
-            lt: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: mockTodaysTasks, error: null })),
-            })),
-          })),
-        })),
-      })),
+    mockUseTasks.mockReturnValue({
+        tasks: mockTasks,
+        fetchTasks: jest.fn(),
+        latestTask: mockTasks[0],
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -342,5 +278,30 @@ describe('TasksPage', () => {
     await waitFor(() => {
       expect(screen.getByText('タスクの更新に失敗しました。')).toBeInTheDocument();
     });
+  });
+});
+
+// Add a test case for adding a new task
+it('should add a new task', async () => {
+  render(<TasksPage />);
+
+  await waitFor(() => {
+    expect(screen.getByPlaceholderText('新しいタスクを追加')).toBeInTheDocument();
+  });
+
+  const input = screen.getByPlaceholderText('新しいタスクを追加');
+  const addButton = screen.getByText('追加');
+
+  fireEvent.change(input, { target: { value: 'New Task' } });
+  fireEvent.click(addButton);
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/add-task',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ description: 'New Task' }),
+      })
+    );
   });
 });

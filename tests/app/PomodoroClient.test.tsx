@@ -3,10 +3,12 @@ import { render, screen, fireEvent, waitFor, act, waitForElementToBeRemoved } fr
 import PomodoroClient from '@/app/PomodoroClient';
 import { useTimer } from '@/context/TimerContext';
 import { useSettings } from '@/context/SettingsContext';
+import { TaskProvider } from '@/context/TaskContext';
 import { supabase } from '@/lib/supabaseClient';
 import * as firebaseMessaging from 'firebase/messaging';
 import admin from 'firebase-admin';
 import '@testing-library/jest-dom';
+
 // ← 一番上に置く（他の import の前）
 // Supabase を stateful にモックして、insert 後に一覧へ反映されるようにする
 jest.mock('@/lib/supabaseClient', () => {
@@ -132,7 +134,11 @@ describe('PomodoroClient', () => {
   const renderComponent = async () => {
     let renderResult: any;
     await act(async () => {
-      renderResult = render(<PomodoroClient />);
+      renderResult = render(
+        <TaskProvider>
+          <PomodoroClient />
+        </TaskProvider>
+      );
     });
     return renderResult;
   };
@@ -211,7 +217,11 @@ describe('PomodoroClient', () => {
 
         mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
         await act(async () => {
-            rerender(<PomodoroClient />);
+            rerender(
+              <TaskProvider>
+                <PomodoroClient />
+              </TaskProvider>
+            );
             // Ensure any promises from play() are resolved within this act block
             await Promise.resolve();
         });
@@ -223,13 +233,13 @@ describe('PomodoroClient', () => {
   describe('Push Notifications', () => {
     it('should send push notification on completion', async () => {
         const { rerender } = await renderComponent();
-        await act(async () => { rerender(<PomodoroClient />); }); // Re-render to trigger useEffect
+        await act(async () => { rerender(<TaskProvider><PomodoroClient /></TaskProvider>); }); // Re-render to trigger useEffect
         await navigator.serviceWorker.ready; // Wait for service worker to be ready
         await waitFor(() => expect(mockGetToken).toHaveBeenCalled());
         await waitFor(() => expect(screen.getByText('通知をオフにする')).toBeInTheDocument());
 
         mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
-        await act(async () => { rerender(<PomodoroClient />); });
+        await act(async () => { rerender(<TaskProvider><PomodoroClient /></TaskProvider>); });
 
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith('/api/notify', expect.objectContaining({ method: 'POST' }));
@@ -241,7 +251,7 @@ describe('PomodoroClient', () => {
     it('should open task modal on pomodoro completion when enabled', async () => {
       const { rerender } = await renderComponent();
       mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
-      await act(async () => { rerender(<PomodoroClient />); });
+      await act(async () => { rerender(<TaskProvider><PomodoroClient /></TaskProvider>); });
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'タスクを記録' })).toBeInTheDocument();
       });
@@ -279,7 +289,7 @@ describe('PomodoroClient', () => {
         completionCount: 1,
         lastCompletedMode: 'pomodoro',
       });
-      await act(async () => { rerender(<PomodoroClient />); });
+      await act(async () => { rerender(<TaskProvider><PomodoroClient /></TaskProvider>); });
 
       // モーダルが出ていないことを確認
       await waitFor(() => {
@@ -290,7 +300,7 @@ describe('PomodoroClient', () => {
         const { rerender } = await renderComponent();
 
         mockUseTimer.mockReturnValue({ ...timerContextValue, completionCount: 1, lastCompletedMode: 'pomodoro' });
-        await act(async () => { rerender(<PomodoroClient />); });
+        await act(async () => { rerender(<TaskProvider><PomodoroClient /></TaskProvider>); });
         await waitFor(() => screen.getByRole('heading', { name: 'タスクを記録' }));
 
         const textarea = screen.getByPlaceholderText('（例）設計書の作成');
