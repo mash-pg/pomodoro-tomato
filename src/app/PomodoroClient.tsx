@@ -639,19 +639,28 @@ interface UserSettings {
         {/* Mode Switcher */}
         <div className={`flex justify-center rounded-full p-1 mb-8 w-full max-w-xs ${darkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
           <button
-            onClick={() => handleModeChange('pomodoro')}
+            onClick={() => {
+              unlockAudioContext();
+              handleModeChange('pomodoro');
+            }}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'pomodoro' ? 'bg-blue-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             ポモドーロ
           </button>
           <button
-            onClick={() => handleModeChange('shortBreak')}
+            onClick={() => {
+              unlockAudioContext();
+              handleModeChange('shortBreak');
+            }}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'shortBreak' ? 'bg-green-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             短い休憩
           </button>
           <button
-            onClick={() => handleModeChange('longBreak')}
+            onClick={() => {
+              unlockAudioContext();
+              handleModeChange('longBreak');
+            }}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${currentMode === 'longBreak' ? 'bg-purple-600 text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-300'}`}
           >
             長い休憩
@@ -684,7 +693,13 @@ interface UserSettings {
 
           {isActive && !isPaused && (
             <button
-              onClick={pauseTimer}
+              onClick={() => {
+                if (clickOnAudioRef.current) {
+                  clickOnAudioRef.current.currentTime = 0;
+                  clickOnAudioRef.current.play();
+                }
+                pauseTimer();
+              }}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
                 bg-red-500 hover:bg-red-600
                 text-white shadow-lg`}
@@ -695,7 +710,13 @@ interface UserSettings {
 
           {isActive && isPaused && (
             <button
-              onClick={startTimer}
+              onClick={() => {
+                if (clickOnAudioRef.current) {
+                  clickOnAudioRef.current.currentTime = 0;
+                  clickOnAudioRef.current.play();
+                }
+                startTimer();
+              }}
               className={`py-3 px-8 rounded-lg text-2xl font-bold uppercase transition-colors duration-200
                 bg-green-500 hover:bg-green-600
                 text-white shadow-lg`}
@@ -705,7 +726,13 @@ interface UserSettings {
           )}
 
           <button
-            onClick={resetTimer}
+            onClick={() => {
+              if (clickOnAudioRef.current) {
+                clickOnAudioRef.current.currentTime = 0;
+                clickOnAudioRef.current.play();
+              }
+              resetTimer();
+            }}
             className="py-3 px-8 rounded-lg text-2xl font-bold uppercase bg-gray-600 hover:bg-gray-700 text-white shadow-lg"
           >
             リセット
