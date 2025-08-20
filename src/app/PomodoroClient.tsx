@@ -727,8 +727,8 @@ interface UserSettings {
           </button>
         </div>
         <br />
-        <h1 className="mb-2 text-xl font-bold text-gray-500">
-          前回のタスク: <span className="font-semibold" >{latestTask?.description || 'N/A'}</span>
+        <h1 className="mb-2 text-xl font-bold text-gray-500"> 
+          前回のタスク: <span className="font-semibold" > {latestTask?.description || 'ログインして下さい'}</span>
         </h1>
         {/* Statistics Display */}
         {user && (
