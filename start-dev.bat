@@ -1,12 +1,12 @@
 @echo off
 setlocal EnableExtensions
 
-REM ===== settings =====
+REM ===== settings ======
 set "HOST=localhost"
 set "PORT=3000"
 set "OPEN_PATH=/"
 set "MAX_WAIT=600"
-REM ====================
+REM =====================
 
 title Next.js Dev Crash Catcher
 color 0a
