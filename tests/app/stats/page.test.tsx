@@ -134,4 +134,6 @@ describe('StatsPage', () => {
         expect(deleteChain.eq).toHaveBeenCalledWith('user_id', mockUser.id);
     });
   });
+
+  
 });

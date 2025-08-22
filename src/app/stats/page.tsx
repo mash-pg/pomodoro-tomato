@@ -30,6 +30,7 @@ export default function StatsPage() {
   const [dailyStats, setDailyStats] = useState<Stats>({ count: 0, time: 0 });
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0, activeDays: 0 });
   const [monthlyStats, setMonthlyStats] = useState<Stats>({ count: 0, time: 0 });
+  const [totalStats, setTotalStats] = useState<Stats>({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
   const [goals, setGoals] = useState<Goals>({ daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 });
   const [loading, setLoading] = useState(true);
@@ -158,6 +159,7 @@ export default function StatsPage() {
     let weeklyCount = 0, weeklyTime = 0;
     const weeklyActiveDays = new Set();
     let monthlyCount = 0, monthlyTime = 0;
+    let totalCount = 0, totalTime = 0;
 
     const dailyActivity: { [hour: number]: number } = {};
     for (let i = 0; i < 24; i++) dailyActivity[i] = 0;
@@ -167,6 +169,8 @@ export default function StatsPage() {
 
     allSessionsForStats.forEach(session => {
       const sessionDate = new Date(session.created_at);
+      totalCount++;
+      totalTime += session.duration_minutes;
 
       if (sessionDate.toDateString() === todayStr) {
         dailyCount++;
@@ -188,6 +192,7 @@ export default function StatsPage() {
     setDailyStats({ count: dailyCount, time: dailyTime });
     setWeeklyStats({ count: weeklyCount, time: weeklyTime, activeDays: weeklyActiveDays.size });
     setMonthlyStats({ count: monthlyCount, time: monthlyTime });
+    setTotalStats({ count: totalCount, time: totalTime });
 
     setDailyActivityData(Object.keys(dailyActivity).map(key => ({ hour: Number(key), count: dailyActivity[Number(key)] })));
     setWeeklyActivityData(Object.keys(weeklyActivity).map(key => ({ day: Number(key), count: weeklyActivity[Number(key)] })));
@@ -403,6 +408,11 @@ export default function StatsPage() {
                     >
                       今月のセッションをクリア
                     </button>
+                  </div>
+                  <div className="bg-gray-700 p-4 rounded-md">
+                    <h3 className="font-semibold text-lg mb-2">合計</h3>
+                    <p>ポモドーロ: <span className="font-bold">{totalStats.count}</span></p>
+                    <p>合計時間: <span className="font-bold">{(totalStats.time / 60).toFixed(1)}</span> 時間</p>
                   </div>
                 </div>
               </div>

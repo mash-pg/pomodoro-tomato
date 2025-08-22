@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 import WeeklyTaskCalendar from '@/components/WeeklyTaskCalendar';
 import { startOfWeek, addDays, subWeeks, addWeeks, isToday } from 'date-fns';
 import { useTasks } from '@/context/TaskContext'; // Use the new TaskContext
 
-interface Task {
-  id: number;
-  user_id: string;
-  description: string | null;
-  created_at: string;
-}
 
 export default function TasksPage() {
   const { tasks, fetchTasks } = useTasks(); // Get tasks and fetcher from context
@@ -44,7 +38,7 @@ export default function TasksPage() {
         } else {
           setError("タスクを表示するにはログインしてください。");
         }
-      } catch (error) {
+      } catch {
         setError("タスクの読み込みに失敗しました。");
       } finally {
         setLoading(false);
