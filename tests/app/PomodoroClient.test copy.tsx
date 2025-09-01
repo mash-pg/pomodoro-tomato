@@ -111,7 +111,7 @@ describe('PomodoroClient', () => {
     //jest.resetModules(); // Add this line
 
     timerContextValue = {
-      mode: 'pomodoro', 
+      mode: 'pomodoro',
       minutes: 25, seconds: 0, isActive: false, isPaused: false,
       completionCount: 0, lastCompletedMode: null, currentMode: 'pomodoro',
       startTimer: jest.fn(), pauseTimer: jest.fn(), resetTimer: jest.fn(), setMode: jest.fn(),
@@ -179,32 +179,40 @@ describe('PomodoroClient', () => {
     expect(screen.getByText('今日の目標')).toBeInTheDocument();
         expect(screen.getAllByText('目標が設定されていません').length).toBe(2);
   });
-    it('should display fetched text goals', async () => {
-    // user_text_goals のモックデータを設定
+
+  it('should display fetched text goals', async () => {
+    // Mock the text goals data
     mockSupabase.from.mockImplementation((tableName: string) => {
-      const baseMock = {
+      if (tableName === 'user_text_goals') {
+        return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }), // デフォルトはデータなし
-          insert: jest.fn().mockReturnThis(),
-          upsert: jest.fn().mockResolvedValue({ error: null }),
-          delete: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      if (tableName === 'user_text_goals') {
-        baseMock.single = jest.fn().mockResolvedValue({ data: { daily_goal: 'Test Daily Goal', weekly_goal: 'Test Weekly Goal' }, error: null });
-      } else if (tableName === 'user_goals') {
-        baseMock.single = jest.fn().mockResolvedValue({ data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 }, error: null });
-      } else if (tableName === 'pomodoro_sessions') {
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ data: [], error: null }),
-          }),
+          single: jest.fn().mockResolvedValue({ data: { daily_goal: 'Test Daily Goal', weekly_goal: 'Test Weekly Goal' }, error: null }),
         };
       }
-      return baseMock;
+      // Fallback to original mock for other tables
+      // const originalMock = jest.requireActual('@/lib/supabaseClient').supabase.from(tableName);
+      // return originalMock;
+      // テスト冒頭の beforeEach 後あたりで既存の from を保持
+      const prevFrom = mockSupabase.from as jest.Mock;
+
+      // 中略 ...
+
+      // user_text_goals だけ差し替え。他は prevFrom に委譲（←ここが重要）
+      mockSupabase.from.mockImplementation((tableName: string) => {
+        if (tableName === 'user_text_goals') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: { daily_goal: 'Test Daily Goal', weekly_goal: 'Test Weekly Goal' },
+              error: null
+            }),
+          };
+        }
+        return prevFrom(tableName);
+      });
+
     });
 
     await renderComponent();

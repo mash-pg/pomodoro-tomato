@@ -91,6 +91,8 @@ interface UserSettings {
   const [user, setUser] = useState<User | null>(null);
   const [allSessions, setAllSessions] = useState<PomodoroSession[]>([]);
   const [dailyStats, setDailyStats] = useState({ count: 0, time: 0 });
+  const [dailyGoalText, setDailyGoalText] = useState<string | null>(null);
+  const [weeklyGoalText, setWeeklyGoalText] = useState<string | null>(null);
   const [weeklyStats, setWeeklyStats] = useState({ count: 0, time: 0, activeDays: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
@@ -406,7 +408,7 @@ interface UserSettings {
           .single();
 
         if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 means no rows found
-          
+
         } else if (settingsData) {
           setWorkDuration(settingsData.work_minutes);
           setShortBreakDuration(settingsData.short_break_minutes);
@@ -418,7 +420,20 @@ interface UserSettings {
           setDarkMode(settingsData.dark_mode);
           setEnableTaskTracking(settingsData.enable_task_tracking); // Add this
         }
+        // Fetch text goals
+        const { data: textGoals, error: textGoalErr } = await supabase
+          .from('user_text_goals')
+          .select('daily_goal, weekly_goal')
+          .eq('user_id', user.id)
+          .single();
 
+        if (!textGoalErr && textGoals) {
+          setDailyGoalText(textGoals.daily_goal ?? null);
+          setWeeklyGoalText(textGoals.weekly_goal ?? null);
+        } else {
+          setDailyGoalText(null);
+          setWeeklyGoalText(null);
+        }
         // Fetch streak
         const fetchStreak = async () => {
           try {
@@ -441,10 +456,12 @@ interface UserSettings {
         setLongBreakDuration(15);
         setAutoStartWork(false);
         setAutoStartBreak(false);
-                setMuteNotifications(false);
+        setMuteNotifications(false);
         setDarkMode(true);
         setEnableTaskTracking(true); // Reset on logout
         setStreak(0);
+       setDailyGoalText(null);
+       setWeeklyGoalText(null);
       }
     };
 
@@ -620,8 +637,22 @@ interface UserSettings {
       )}
       
 
-      <div className="text-xs text-gray-500 mb-4">
+      <div className="mb-8 text-center">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold">今日の目標</h2>
+          {dailyGoalText
+            ? <p className="text-lg">{dailyGoalText}</p>
+            : <p className="text-lg text-gray-400">目標が設定されていません</p>}
+        </div>
+        <div>
+          <h2 className="text-xl font-bold">今週の目標</h2>
+          {weeklyGoalText
+            ? <p className="text-lg">{weeklyGoalText}</p>
+            : <p className="text-lg text-gray-400">目標が設定されていません</p>}
+        </div>
       </div>
+
+
       <div className="z-10 w-full max-w-lg items-center justify-between font-mono text-sm flex flex-col text-center">
 
         {/* Mode Switcher */}

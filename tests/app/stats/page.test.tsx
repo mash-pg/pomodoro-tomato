@@ -21,7 +21,6 @@ const deleteChain = {
   eq: jest.fn().mockReturnThis(),
   then: jest.fn().mockResolvedValue({ error: null }),
 };
-deleteChain.eq.mockReturnValue(deleteChain); // Allow chaining .eq().eq()
 
 const deleteChainable = {
   eq: jest.fn().mockReturnThis(),
@@ -32,33 +31,39 @@ const sessionsMock = {
   select: jest.fn().mockImplementation(() => ({
     eq: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(), // range もチェーン可能にする
+    range: jest.fn().mockReturnThis(),
     data: [
       { id: 1, created_at: new Date().toISOString(), duration_minutes: 25 },
       { id: 2, created_at: new Date().toISOString(), duration_minutes: 25 },
-    ], // Default data for select
+    ],
     error: null,
     count: 2,
   })),
-  insert: jest.fn().mockResolvedValue({ error: null }), // Add insert mock
+  insert: jest.fn().mockResolvedValue({ error: null }),
   eq: jest.fn().mockReturnThis(),
   order: jest.fn().mockReturnThis(),
-  range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }), // range の最終的な結果をモック
-  delete: jest.fn(() => deleteChainable), // Always return the same deleteChainable mock
+  range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+  delete: jest.fn(() => deleteChainable),
 };
 
 const goalsMock = {
   select: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockImplementation(() => ({
-    single: jest.fn().mockResolvedValue({ data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 }, error: null }),
-  })),
-  single: jest.fn().mockResolvedValue({ data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 }, error: null }), // Mock single() for initial no-goal state
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn().mockResolvedValue({ data: { daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 }, error: null }),
+  upsert: jest.fn().mockResolvedValue({ error: null }),
+};
+
+const textGoalsMock = {
+  select: jest.fn().mockReturnThis(),
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn().mockResolvedValue({ data: { daily_goal: '', weekly_goal: '' }, error: null }),
   upsert: jest.fn().mockResolvedValue({ error: null }),
 };
 
 (supabase.from as jest.Mock).mockImplementation((table: string) => {
   if (table === 'pomodoro_sessions') return sessionsMock;
   if (table === 'user_goals') return goalsMock;
+  if (table === 'user_text_goals') return textGoalsMock;
   return { select: jest.fn().mockReturnThis(), eq: jest.fn(), single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }) };
 });
 
@@ -67,9 +72,8 @@ describe('StatsPage', () => {
     jest.clearAllMocks();
     (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: mockUser } });
     sessionsMock.range.mockResolvedValue({ data: [], error: null, count: 0 });
-    global.confirm = jest.fn(() => true); // Mock window.confirm
-    global.alert = jest.fn(); // Mock window.alert
-    // goalsMock.eq.mockResolvedValue({ data: [], error: null }); // This line might be causing the issue
+    global.confirm = jest.fn(() => true);
+    global.alert = jest.fn();
   });
 
   it('should show login message when user is not authenticated', async () => {
@@ -86,17 +90,18 @@ describe('StatsPage', () => {
     sessionsMock.range.mockResolvedValue({ data: mockSessions, error: null, count: 2 });
     await act(async () => { render(<StatsPage />); });
     await waitFor(() => {
-      const todays = screen.getAllByText('今日');
-      expect(todays.length).toBeGreaterThan(1); // or .toBe(2) if you expect exact match
+      expect(screen.getByText('今日')).toBeInTheDocument();
+      expect(screen.getByText('今週')).toBeInTheDocument();
+      expect(screen.getByText('今月')).toBeInTheDocument();
     });
   });
 
-  it('should allow saving new goals', async () => {
+  it('should allow saving new pomodoro goals', async () => {
     await act(async () => { render(<StatsPage />); });
     await waitFor(() => expect(screen.getByText('目標を保存')).toBeInTheDocument());
 
-    const dailyGoalInput = screen.getByLabelText('今日');
-    fireEvent.change(dailyGoalInput, { target: { value: '10' } });
+    const dailyPomodoroInput = screen.getByLabelText('今日の目標（ポモドーロ回数）');
+    fireEvent.change(dailyPomodoroInput, { target: { value: '10' } });
     fireEvent.click(screen.getByText('目標を保存'));
 
     await waitFor(() => {
@@ -113,7 +118,7 @@ describe('StatsPage', () => {
     fireEvent.click(screen.getByText('セッションを追加'));
 
     await waitFor(() => {
-      expect(sessionsMock.select).toHaveBeenCalled();
+      expect(sessionsMock.insert).toHaveBeenCalled();
     });
   });
 
@@ -134,6 +139,4 @@ describe('StatsPage', () => {
         expect(deleteChain.eq).toHaveBeenCalledWith('user_id', mockUser.id);
     });
   });
-
-  
 });

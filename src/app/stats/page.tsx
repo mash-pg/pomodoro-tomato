@@ -18,6 +18,8 @@ interface Stats {
 }
 
 interface Goals {
+  daily_goal: string;
+  weekly_goal: string;
   daily_pomodoros: number | '';
   weekly_pomodoros: number | '';
   monthly_pomodoros: number | '';
@@ -32,7 +34,13 @@ export default function StatsPage() {
   const [monthlyStats, setMonthlyStats] = useState<Stats>({ count: 0, time: 0 });
   const [totalStats, setTotalStats] = useState<Stats>({ count: 0, time: 0 });
   const [streak, setStreak] = useState(0);
-  const [goals, setGoals] = useState<Goals>({ daily_pomodoros: 8, weekly_pomodoros: 40, monthly_pomodoros: 160 });
+  const [goals, setGoals] = useState<Goals>({ 
+    daily_goal: '', 
+    weekly_goal: '',
+    daily_pomodoros: 8, 
+    weekly_pomodoros: 40, 
+    monthly_pomodoros: 160 
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,16 +103,36 @@ export default function StatsPage() {
         setAllSessionsForStats(allSessionsData as PomodoroSession[]);
       }
 
-      const { data: goalsData, error: goalsError } = await supabase
+      // Fetch text goals
+      const { data: textGoalsData, error: textGoalsError } = await supabase
+        .from('user_text_goals')
+        .select('daily_goal, weekly_goal')
+        .eq('user_id', user.id)
+        .single();
+
+      if (textGoalsError && textGoalsError.code !== 'PGRST116') {
+        setError('テキスト目標の読み込みに失敗しました。');
+      }
+
+      // Fetch pomodoro goals
+      const { data: pomodoroGoalsData, error: pomodoroGoalsError } = await supabase
         .from('user_goals')
         .select('daily_pomodoros, weekly_pomodoros, monthly_pomodoros')
         .eq('user_id', user.id)
         .single();
 
-      if (goalsError && goalsError.code !== 'PGRST116') {
-        setError('目標の読み込みに失敗しました。');
-      } else if (goalsData) {
-        setGoals(goalsData);
+      if (pomodoroGoalsError && pomodoroGoalsError.code !== 'PGRST116') {
+        setError('ポモドーロ目標の読み込みに失敗しました。');
+      }
+
+      if (textGoalsData || pomodoroGoalsData) {
+        setGoals({
+          daily_goal: textGoalsData?.daily_goal || '',
+          weekly_goal: textGoalsData?.weekly_goal || '',
+          daily_pomodoros: pomodoroGoalsData?.daily_pomodoros || 8,
+          weekly_pomodoros: pomodoroGoalsData?.weekly_pomodoros || 40,
+          monthly_pomodoros: pomodoroGoalsData?.monthly_pomodoros || 160,
+        });
       }
 
       // Fetch streak
@@ -202,26 +230,41 @@ export default function StatsPage() {
   const handleSaveGoals = async () => {
     if (!user) return alert('目標を保存するにはログインしてください。');
     setIsSaving(true);
-    const { error } = await supabase.from('user_goals').upsert({ 
+
+    const { error: textGoalsError } = await supabase.from('user_text_goals').upsert({ 
+      user_id: user.id,
+      daily_goal: goals.daily_goal,
+      weekly_goal: goals.weekly_goal,
+    });
+
+    const { error: pomodoroGoalsError } = await supabase.from('user_goals').upsert({
       user_id: user.id,
       daily_pomodoros: Number(goals.daily_pomodoros) || 0,
       weekly_pomodoros: Number(goals.weekly_pomodoros) || 0,
       monthly_pomodoros: Number(goals.monthly_pomodoros) || 0,
     });
-    if (error) setError('目標の保存に失敗しました。');
-    else alert('目標を保存しました。');
+
+    if (textGoalsError || pomodoroGoalsError) {
+      setError('目標の保存に失敗しました。');
+    } else {
+      alert('目標を保存しました。');
+    }
     setIsSaving(false);
   };
 
-  const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGoalChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (value === '') {
-      setGoals(prev => ({ ...prev, [name]: '' }));
-      return;
-    }
-    const intValue = parseInt(value, 10);
-    if (!isNaN(intValue) && intValue >= 0) {
-      setGoals(prev => ({ ...prev, [name]: intValue }));
+    if (e.target.type === 'number') {
+      if (value === '') {
+        setGoals(prev => ({ ...prev, [name]: '' }));
+        return;
+      }
+      const intValue = parseInt(value, 10);
+      if (!isNaN(intValue) && intValue >= 0) {
+        setGoals(prev => ({ ...prev, [name]: intValue }));
+      }
+    } else {
+      setGoals(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -346,18 +389,27 @@ export default function StatsPage() {
             {/* Left Column */}
             <div className="flex flex-col gap-8">
               <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold mb-4">目標設定 (ポモドーロ回数)</h2>
+                <h2 className="text-xl font-bold mb-4">目標設定</h2>
                 <div className="grid grid-cols-1 gap-4 mb-4">
                   <div>
-                    <label htmlFor="daily_pomodoros" className="block text-sm font-medium text-gray-400">今日</label>
+                    <label htmlFor="daily_goal" className="block text-sm font-medium text-gray-400">今日の目標（テキスト）</label>
+                    <textarea id="daily_goal" name="daily_goal" value={goals.daily_goal} onChange={handleGoalChange} rows={3} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="weekly_goal" className="block text-sm font-medium text-gray-400">今週の目標（テキスト）</label>
+                    <textarea id="weekly_goal" name="weekly_goal" value={goals.weekly_goal} onChange={handleGoalChange} rows={5} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
+                  </div>
+                  <hr className="my-4 border-gray-600" />
+                  <div>
+                    <label htmlFor="daily_pomodoros" className="block text-sm font-medium text-gray-400">今日の目標（ポモドーロ回数）</label>
                     <input type="number" id="daily_pomodoros" name="daily_pomodoros" value={goals.daily_pomodoros} onChange={handleGoalChange} min="0" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                   <div>
-                    <label htmlFor="weekly_pomodoros" className="block text-sm font-medium text-gray-400">今週</label>
+                    <label htmlFor="weekly_pomodoros" className="block text-sm font-medium text-gray-400">今週の目標（ポモドーロ回数）</label>
                     <input type="number" id="weekly_pomodoros" name="weekly_pomodoros" value={goals.weekly_pomodoros} onChange={handleGoalChange} min="0" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                   <div>
-                    <label htmlFor="monthly_pomodoros" className="block text-sm font-medium text-gray-400">今月</label>
+                    <label htmlFor="monthly_pomodoros" className="block text-sm font-medium text-gray-400">今月の目標（ポモドーロ回数）</label>
                     <input type="number" id="monthly_pomodoros" name="monthly_pomodoros" value={goals.monthly_pomodoros} onChange={handleGoalChange} min="0" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                   </div>
                 </div>
