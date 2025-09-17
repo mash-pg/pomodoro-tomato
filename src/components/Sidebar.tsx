@@ -141,6 +141,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                 タスク
               </button>
               <button
+                onClick={() => handleLinkClick('/todo')}
+                className="block w-full text-white hover:bg-gray-700 py-2 px-4 rounded transition-colors duration-200 mb-2 text-left"
+              >
+                ToDo
+              </button>
+              <button
                 onClick={handleLogout}
                 className="block w-full text-white bg-red-600 hover:bg-red-700 py-2 px-4 rounded transition-colors duration-200 text-left mt-4"
                 disabled={loading}

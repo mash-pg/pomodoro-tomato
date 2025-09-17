@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { TimerProvider } from "@/context/TimerContext";
 import { TaskProvider } from "@/context/TaskContext";
+import { TodoProvider } from "@/context/TodoContext";
 import ClientGlobalSettingsModalWrapper from "@/components/ClientGlobalSettingsModalWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -29,11 +30,13 @@ export default function RootLayout({
         <SettingsProvider>
           <TimerProvider>
             <TaskProvider>
-              <Navbar />
-              <div className="pt-16"> {/* Add padding-top to prevent content from being hidden behind the fixed Navbar */}
-                {children}
-              </div>
-              <ClientGlobalSettingsModalWrapper />
+              <TodoProvider>
+                <Navbar />
+                <div className="pt-16"> {/* Add padding-top to prevent content from being hidden behind the fixed Navbar */}
+                  {children}
+                </div>
+                <ClientGlobalSettingsModalWrapper />
+              </TodoProvider>
             </TaskProvider>
           </TimerProvider>
         </SettingsProvider>
