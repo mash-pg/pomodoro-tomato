@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // ← useEffect を追加！
 
 interface Todo {
   id: number;
@@ -23,9 +23,35 @@ export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, totals }: 
   const total = totals?.total ?? todos.length;
   const completed = totals?.completed ?? 0;
   const remaining = total - completed;
+  // ✅ デイリーカウント管理
+  const DAILY_KEY = "daily_completed_count";
+  const DATE_KEY = "daily_completed_date";
+  const [dailyCompleted, setDailyCompleted] = useState(0);
+  useEffect(() => {
+    const savedCount = Number(localStorage.getItem(DAILY_KEY) || 0);
+    const savedDate = localStorage.getItem(DATE_KEY);
+    const today = new Date().toLocaleDateString();
+
+    if (savedDate === today) {
+      setDailyCompleted(savedCount);
+    } else {
+      localStorage.setItem(DATE_KEY, today);
+      localStorage.setItem(DAILY_KEY, "0");
+      setDailyCompleted(0);
+    }
+  }, []);
 
   const handleToggleComplete = async (todo: Todo) => {
-    await onUpdateTodo(todo.id, todo.description || '', !todo.is_completed);
+    
+    const nextCompleted = !todo.is_completed;
+    
+    await onUpdateTodo(todo.id, todo.description || '', nextCompleted);
+
+    if (!todo.is_completed && nextCompleted) {
+      const newCount = dailyCompleted + 1;
+      setDailyCompleted(newCount);
+      localStorage.setItem(DAILY_KEY, String(newCount));
+    }
   };
 
   const handleStartEdit = (todo: Todo) => {
@@ -49,9 +75,10 @@ export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, totals }: 
       <h2 className="text-2xl font-bold mb-6 text-blue-400">未完了のタスク</h2>
 
       <div className="flex items-center gap-2 text-sm mb-4">
-        <span className="px-2 py-1 rounded bg-gray-700 text-gray-100 border border-gray-600">合計: {total}</span>
-        <span className="px-2 py-1 rounded bg-gray-700 text-emerald-300 border border-gray-600">完了: {completed}</span>
-        <span className="px-2 py-1 rounded bg-gray-700 text-amber-300 border border-gray-600">未完了: {remaining}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-amber-300 border border-gray-600 text-2xl font-bold">未完了: {remaining}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-blue-300 border border-gray-600 text-2xl font-bold">今日の達成: {dailyCompleted}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-gray-100 border border-gray-600 text-xl">これまでの合計数: {total}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-emerald-300 border border-gray-600 text-xl">これまでの完了数: {completed}</span>
       </div>
 
       {todos.length === 0 ? (
