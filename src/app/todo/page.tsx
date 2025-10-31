@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 import { useTodos } from '@/context/TodoContext';
@@ -12,7 +12,17 @@ export default function TodoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTodoDescription, setNewTodoDescription] = useState('');
-
+  // ▼▼ ここに追加（useEffect の前）▼▼
+  const { allTodos, incompleteTodos, totalCount, completedCount } = useMemo(() => {
+    const all = todos || [];
+    const completed = all.filter(t => t.is_completed).length;
+    return {
+      allTodos: all,
+      incompleteTodos: all.filter(t => !t.is_completed),
+      totalCount: all.length,
+      completedCount: completed,
+    };
+  }, [todos]);
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -159,11 +169,12 @@ export default function TodoPage() {
         {!user && !loading && !error && <p className="text-gray-400">ToDoリストを表示するにはログインしてください。</p>}
 
         {user && !loading && !error && (
-          <TodoList
-            todos={(todos || []).filter(todo => !todo.is_completed)}
-            onUpdateTodo={handleUpdateTodo}
-            onDeleteTodo={handleDeleteTodo}
-          />
+        <TodoList
+          todos={incompleteTodos}                                   // 未完了のみ表示
+          onUpdateTodo={handleUpdateTodo}
+          onDeleteTodo={handleDeleteTodo}
+          totals={{ total: totalCount, completed: completedCount }}  // 全体の合計/完了を渡す
+        />
         )}
       </div>
     </main>
