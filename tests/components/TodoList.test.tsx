@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import TodoList from '@/components/TodoList';
 
@@ -23,14 +24,14 @@ describe('TodoList', () => {
 
   it('should show a message when there are no todos', () => {
     render(<TodoList todos={[]} onUpdateTodo={onUpdateTodo} onDeleteTodo={onDeleteTodo} />);
-    expect(screen.getByText('未完了のタスクはありません。')).toBeInTheDocument();
+    expect(screen.getByText('表示するタスクはありません。')).toBeInTheDocument();
   });
 
   it('should call onUpdateTodo when a checkbox is clicked', () => {
     render(<TodoList todos={mockTodos} onUpdateTodo={onUpdateTodo} onDeleteTodo={onDeleteTodo} />);
     const checkbox = screen.getAllByRole('checkbox')[0];
     fireEvent.click(checkbox);
-    expect(onUpdateTodo).toHaveBeenCalledWith(1, 'Test Todo 1', true);
+    expect(onUpdateTodo).toHaveBeenCalledWith(1, 'Test Todo 1', true, false);  
   });
 
   it('should call onDeleteTodo when the delete button is clicked', () => {
@@ -58,6 +59,6 @@ describe('TodoList', () => {
     const saveButton = screen.getByLabelText('Save todo');
     fireEvent.click(saveButton);
 
-    expect(onUpdateTodo).toHaveBeenCalledWith(1, 'Updated Todo', false);
+    expect(onUpdateTodo).toHaveBeenCalledWith(1, 'Updated Todo', false, false);
   });
 });

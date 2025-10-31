@@ -21,9 +21,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Todo ID and description or is_completed are required' });
     }
 
-    const updateData: { description?: string; is_completed?: boolean } = {};
+    const updateData: { description?: string; is_completed?: boolean; completed_at?: string | null } = {};
+
     if (description !== undefined) updateData.description = description;
-    if (is_completed !== undefined) updateData.is_completed = is_completed;
+    if (is_completed !== undefined) {
+      updateData.is_completed = is_completed;
+      updateData.completed_at = is_completed ? new Date().toISOString() : null; // ★ ここ！
+    }
+
 
     const { data, error } = await supabase
       .from('todos')

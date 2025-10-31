@@ -1,10 +1,16 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+
 import '@testing-library/jest-dom';
 import TodoPage from '@/app/todo/page';
 import { supabase } from '@/lib/supabaseClient';
 import { useTodos } from '@/context/TodoContext';
 import { TodoProvider } from '@/context/TodoContext';
-
+jest.mock('@/lib/dailyProgress', () => ({
+  __esModule: true,
+  getTodayCount: jest.fn().mockResolvedValue(0),
+  incTodayCount: jest.fn().mockResolvedValue(undefined),
+  decTodayCount: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('@/context/TodoContext', () => ({
   __esModule: true,
   ...jest.requireActual('@/context/TodoContext'),
@@ -98,59 +104,79 @@ describe('TodoPage', () => {
     });
   });
 
-  it('should update a todo', async () => {
-    const mockInitialTodos = [
-      { id: 1, description: 'Initial todo', is_completed: false },
-    ];
-    const fetchTodos = jest.fn();
-    mockUseTodos.mockReturnValue({ todos: mockInitialTodos, fetchTodos });
+it('should update a todo', async () => {
+  const mockInitialTodos = [
+    {
+      id: 1,
+      description: 'Initial todo',
+      is_completed: false,
+      created_at: new Date().toISOString(), // ← 追加（並び替えのため）
+    },
+  ];
+  const fetchTodos = jest.fn();
+  mockUseTodos.mockReturnValue({ todos: mockInitialTodos, fetchTodos });
 
-    renderWithProvider(<TodoPage />);
+  renderWithProvider(<TodoPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Initial todo')).toBeInTheDocument();
-    });
-
-    const checkbox = screen.getByRole('checkbox');
-    fireEvent.click(checkbox);
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/update-todo',
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify({ todo_id: 1, description: 'Initial todo', is_completed: true }),
-        })
-      );
-      expect(fetchTodos).toHaveBeenCalled();
-    });
+  // 未完了リストの中だけを対象にする（重複回避）
+  const incomplete = await screen.findByTestId('incomplete-list');
+  await waitFor(() => {
+    expect(within(incomplete).getByText('Initial todo')).toBeInTheDocument();
   });
 
-  it('should delete a todo', async () => {
-    const mockInitialTodos = [
-      { id: 1, description: 'Todo to delete', is_completed: false },
-    ];
-    const fetchTodos = jest.fn();
-    mockUseTodos.mockReturnValue({ todos: mockInitialTodos, fetchTodos });
+  const checkbox = within(incomplete).getByRole('checkbox');
+  fireEvent.click(checkbox);
 
-    renderWithProvider(<TodoPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Todo to delete')).toBeInTheDocument();
-    });
-
-    const deleteButton = screen.getByLabelText('Delete todo');
-    fireEvent.click(deleteButton);
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/delete-todo',
-        expect.objectContaining({
-          method: 'DELETE',
-          body: JSON.stringify({ todo_id: 1 }),
-        })
-      );
-      expect(fetchTodos).toHaveBeenCalled();
-    });
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/update-todo',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          todo_id: 1,
+          description: 'Initial todo',
+          is_completed: true,
+        }),
+      })
+    );
+    expect(fetchTodos).toHaveBeenCalled();
   });
+});
+
+
+it('should delete a todo', async () => {
+  const mockInitialTodos = [
+    {
+      id: 1,
+      description: 'Todo to delete',
+      is_completed: false,
+      created_at: new Date().toISOString(), // ← 追加（並び替えのため）
+    },
+  ];
+  const fetchTodos = jest.fn();
+  mockUseTodos.mockReturnValue({ todos: mockInitialTodos, fetchTodos });
+
+  renderWithProvider(<TodoPage />);
+
+  // 全件リスト側（data-testid="all-list"）にスコープ
+  const allList = await screen.findByTestId('all-list');
+  await waitFor(() => {
+    expect(within(allList).getByText('Todo to delete')).toBeInTheDocument();
+  });
+
+  const deleteButton = within(allList).getByLabelText('Delete todo');
+  fireEvent.click(deleteButton);
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/delete-todo',
+      expect.objectContaining({
+        method: 'DELETE',
+        body: JSON.stringify({ todo_id: 1 }),
+      })
+    );
+    expect(fetchTodos).toHaveBeenCalled();
+  });
+});
+
 });

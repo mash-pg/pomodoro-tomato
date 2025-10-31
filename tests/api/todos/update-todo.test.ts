@@ -72,7 +72,9 @@ describe('PUT /api/update-todo', () => {
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockFrom).toHaveBeenCalledWith('todos');
-    expect(mockUpdate).toHaveBeenCalledWith({ description: 'Updated Todo', is_completed: true });
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'Updated Todo', is_completed: true })
+    );
     expect(mockEq).toHaveBeenCalledWith('id', 1);
     expect(mockEq().eq).toHaveBeenCalledWith('user_id', mockUser.id);
     expect(mockRes.status).toHaveBeenCalledWith(200);
