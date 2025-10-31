@@ -17,7 +17,9 @@ export default function TodoPage() {
     const all = todos || [];
     const completed = all.filter(t => t.is_completed).length;
     return {
-      allTodos: all,
+      // ✅ 「これまでのタスク（全件）」だけ新しい順
+      allTodos: all.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+      // ✅ 未完了は「元の並び順のまま」
       incompleteTodos: all.filter(t => !t.is_completed),
       totalCount: all.length,
       completedCount: completed,
@@ -169,12 +171,29 @@ export default function TodoPage() {
         {!user && !loading && !error && <p className="text-gray-400">ToDoリストを表示するにはログインしてください。</p>}
 
         {user && !loading && !error && (
-        <TodoList
-          todos={incompleteTodos}                                   // 未完了のみ表示
-          onUpdateTodo={handleUpdateTodo}
-          onDeleteTodo={handleDeleteTodo}
-          totals={{ total: totalCount, completed: completedCount }}  // 全体の合計/完了を渡す
-        />
+        <>
+          {/* 未完了のみ（タイトル任意。ページング不要なら pageSize 省略） */}
+          <TodoList
+            title="未完了のタスク"
+            todos={incompleteTodos}
+            onUpdateTodo={handleUpdateTodo}
+            onDeleteTodo={handleDeleteTodo}
+            totals={{ total: totalCount, completed: completedCount }}
+            pageSize={15}   // ★ ここを追加：1ページ15件表示
+          />
+
+          {/* これまでの ToDo（全件） → 10件/ページ */}
+          <div className="mt-8 w-full">
+            <TodoList
+              title="これまでのタスク（全件）"
+              todos={allTodos}
+              onUpdateTodo={handleUpdateTodo}
+              onDeleteTodo={handleDeleteTodo}
+              totals={{ total: totalCount, completed: completedCount }}
+              pageSize={10}   // ★ 10件/ページ
+            />
+          </div>
+        </>
         )}
       </div>
     </main>
