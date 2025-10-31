@@ -17,6 +17,16 @@ interface TodoListProps {
 export default function TodoList({ todos, onUpdateTodo, onDeleteTodo }: TodoListProps) {
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [editedDescription, setEditedDescription] = useState<string>('');
+  // ✅ 合計 / 完了 / 未完了 を集計する
+  const { total, completed, remaining } = React.useMemo(() => {
+    const totalCount = todos.length;
+    const completedCount = todos.filter(t => t.is_completed).length;
+    return {
+      total: totalCount,
+      completed: completedCount,
+      remaining: totalCount - completedCount,
+    };
+  }, [todos]);
 
   const handleToggleComplete = (todo: Todo) => {
     onUpdateTodo(todo.id, todo.description || '', !todo.is_completed);
@@ -41,6 +51,12 @@ export default function TodoList({ todos, onUpdateTodo, onDeleteTodo }: TodoList
   return (
     <div className="w-full bg-gray-800 p-8 rounded-lg shadow-xl border border-blue-500">
       <h2 className="text-2xl font-bold mb-6 text-blue-400">未完了のタスク</h2>
+      <div className="flex items-center gap-2 text-sm mb-4">
+        <span className="px-2 py-1 rounded bg-gray-700 text-gray-100 border border-gray-600">合計: {total}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-emerald-300 border border-gray-600">完了: {completed}</span>
+        <span className="px-2 py-1 rounded bg-gray-700 text-amber-300 border border-gray-600">未完了: {remaining}</span>
+      </div>
+
       {todos.length === 0 ? (
         <p className="text-gray-400">未完了のタスクはありません。</p>
       ) : (
