@@ -202,7 +202,7 @@ interface UserSettings {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ fcmToken, userId: user.id }),
+          body: JSON.stringify({ fcmToken }),
         });
         if (response.ok) {
           setFcmToken(null); // Clear token after successful unsubscribe
@@ -233,7 +233,7 @@ interface UserSettings {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ fcmToken: currentToken, userId: user.id, subscription: subscription }),
+            body: JSON.stringify({ fcmToken: currentToken, subscription: subscription }),
           });
           if (response.ok) {
             setFcmToken(currentToken);
@@ -596,7 +596,7 @@ interface UserSettings {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user.id }),
+          body: JSON.stringify({}),
         });
       }
     }

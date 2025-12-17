@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/supabaseClient';
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 import admin from 'firebase-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
@@ -16,13 +16,24 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Create authenticated Supabase client
+  const supabase = createPagesServerClient({ req, res });
+
+  // Verify user authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    console.error('POST /api/notify - Authentication failed:', authError);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   if (req.method === 'POST') {
-    const { userId } = req.body;
+    console.log('POST /api/notify - User ID:', user.id);
 
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')
       .select('fcm_token')
-      .eq('user_id', userId);
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Failed to fetch FCM tokens:', error);
