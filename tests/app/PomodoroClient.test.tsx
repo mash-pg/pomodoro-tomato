@@ -21,6 +21,18 @@ jest.mock('@/lib/supabaseClient', () => ({
   },
 }));
 
+// createPagesServerClient をモックする
+const mockServerSupabase = {
+  auth: {
+    getUser: jest.fn(),
+  },
+  from: jest.fn(),
+};
+
+jest.mock('@supabase/auth-helpers-nextjs', () => ({
+  createPagesServerClient: jest.fn(() => mockServerSupabase),
+}));
+
 // --- Mocks ---
 jest.mock('@/context/TimerContext');
 jest.mock('@/context/SettingsContext');
@@ -345,11 +357,13 @@ describe('/api/notify', () => {
           failureCount: 0,
         });
         (admin.messaging as jest.Mock).mockReturnValue({ sendEachForMulticast: mockSendEachForMulticast });
+        mockSupabase.auth.getUser = jest.fn().mockResolvedValue({ data: { user: mockUser }, error: null });
+        mockServerSupabase.auth.getUser = jest.fn().mockResolvedValue({ data: { user: mockUser }, error: null });
     });
 
     it('should send notifications to multiple tokens', async () => {
         const mockTokens = [{ fcm_token: 'token1' }, { fcm_token: 'token2' }];
-        mockSupabase.from = jest.fn().mockReturnValue({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockResolvedValue({ data: mockTokens, error: null }) } as any);
+        mockServerSupabase.from = jest.fn().mockReturnValue({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockResolvedValue({ data: mockTokens, error: null }) } as any);
 
         const handler = (await import('@/pages/api/notify')).default;
         await handler(mockReq, mockRes);
@@ -365,12 +379,13 @@ describe('/api/subscribe', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn(), end: jest.fn() };
-        mockSupabase.from = jest.fn().mockImplementation((tableName: string) => {
+        mockServerSupabase.from = jest.fn().mockImplementation((tableName: string) => {
             if (tableName === 'push_subscriptions') {
                 return { insert: jest.fn().mockResolvedValue({ error: null }) };
             }
             return { insert: jest.fn().mockResolvedValue({ error: null }) }; // Fallback for other tables
         });
+        mockServerSupabase.auth.getUser = jest.fn().mockResolvedValue({ data: { user: mockUser }, error: null });
     });
 
     it('should return 400 on POST if fcmToken is missing', async () => {
